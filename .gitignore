@@ -1,0 +1,28 @@
+# Build directories
+build/
+out/
+bin/
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+
+# Dependencies
+vcpkg_installed/
+.vcpkg/
+
+# IDEs and Caches
+.vscode/
+vscode/
+.idea/
+.cache/
+*.swp
+
+# OS generated files
+.DS_Store
