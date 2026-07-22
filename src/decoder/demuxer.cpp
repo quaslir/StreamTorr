@@ -49,32 +49,17 @@ bool Demuxer::has_audio() const {
     return audio_stream_index >= 0;
 }
 
-std::optional<VideoInfo> Demuxer::video_stream_info() const {
+std::optional<AVCodecParameters *> Demuxer::video_stream_info() const {
     if(!has_video()) return std::nullopt;
 
-    VideoInfo video_info;
-    AVCodecParameters* codecpar = format_context->streams[video_stream_index]->codecpar;
-    video_info.codec_id = codecpar->codec_id;
-    video_info.format = static_cast<AVPixelFormat>(codecpar->format);
-    video_info.width = codecpar->width;
-    video_info.height = codecpar->height;
-    video_info.bit_rate = codecpar->bit_rate;
-    video_info.framerate = codecpar->framerate;
-    return video_info;
+    return format_context->streams[video_stream_index]->codecpar;
+
 }
 
-std::optional<AudioInfo> Demuxer::audio_stream_info() const {
+std::optional<AVCodecParameters *> Demuxer::audio_stream_info() const {
 if(!has_audio()) return std::nullopt;
 
-AudioInfo audio_info;
-AVCodecParameters * codecpar = format_context->streams[audio_stream_index]->codecpar;
-
-audio_info.codec_id = codecpar->codec_id;
-audio_info.sample_rate = codecpar->sample_rate;
-audio_info.format = static_cast<AVSampleFormat>(codecpar->format);
-audio_info.bit_rate = codecpar->bit_rate;
-audio_info.channels =  codecpar->ch_layout.nb_channels;
-return audio_info;
+return  format_context->streams[audio_stream_index]->codecpar;
 }
 
 std::optional<DemuxedPacket> Demuxer::read_next_packet() {

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdio>
 
+#include <libavcodec/codec_par.h>
 #include <memory>
 #include <optional>
 #include <string>
@@ -81,8 +82,8 @@ class Demuxer {
       bool has_video() const;
       bool has_audio() const;
 
-      std::optional<VideoInfo> video_stream_info() const;
-      std::optional<AudioInfo> audio_stream_info() const;
+      std::optional<AVCodecParameters *> video_stream_info() const;
+      std::optional<AVCodecParameters *> audio_stream_info() const;
 
       std::optional<DemuxedPacket> read_next_packet();
 };
