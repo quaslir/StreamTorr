@@ -1,12 +1,6 @@
 #include "decoder/video_decoder.hpp"
-#include "decoder/demuxer.hpp"
 #include <cerrno>
 #include <cmath>
-#include <libavcodec/avcodec.h>
-#include <libavcodec/codec.h>
-#include <libavcodec/codec_par.h>
-#include <libavutil/error.h>
-#include <libavutil/frame.h>
 #include <optional>
 
 bool VideoDecoder::init(AVCodecParameters * codecpar) {

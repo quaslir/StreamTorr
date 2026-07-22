@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(Catch2)
 
 add_executable(streamtorr_tests
     decoder/test_demuxer.cpp
+    decoder/test_video_decoder.cpp
 )
 
 target_link_libraries(streamtorr_tests PRIVATE

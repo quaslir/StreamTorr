@@ -1,11 +1,13 @@
-#include "demuxer.hpp"
-#include <libavcodec/avcodec.h>
+
+extern "C" {
+    #include <libavcodec/avcodec.h>
 #include <libavcodec/codec_par.h>
 #include <libavcodec/packet.h>
 #include <libavutil/frame.h>
+}
 #include <memory>
 
-
+#include <optional>
 struct AVCodecContextDeleter {
     void operator()(AVCodecContext* codec_context) {
         avcodec_free_context(&codec_context);

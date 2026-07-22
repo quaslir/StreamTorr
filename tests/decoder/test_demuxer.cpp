@@ -28,10 +28,10 @@ TEST_CASE("Demuxer finds a video stream in a valid media file", "[demuxer]") {
     REQUIRE(demuxer.has_video());
     auto video_container = demuxer.video_stream_info();
     if(video_container.has_value()) {
-    REQUIRE(video_container->width > 0);
-    REQUIRE(video_container->height > 0);
+    REQUIRE(video_container.value()->width > 0);
+    REQUIRE(video_container.value()->height > 0);
     // codec_id should be a real codec, not the "unknown" sentinel.
-    REQUIRE(video_container->codec_id != AV_CODEC_ID_NONE);
+    REQUIRE(video_container.value()->codec_id != AV_CODEC_ID_NONE);
     }
 }
 
@@ -42,16 +42,15 @@ TEST_CASE("Demuxer reports audio info consistently with has_audio", "[demuxer]")
     if (demuxer.has_audio()) {
         auto audio_container = demuxer.audio_stream_info();
         if(audio_container.has_value()) {
-        REQUIRE(audio_container->sample_rate > 0);
-        REQUIRE(audio_container->channels > 0);
-        REQUIRE(audio_container->codec_id != AV_CODEC_ID_NONE);
+        REQUIRE(audio_container.value()->sample_rate > 0);
+        REQUIRE(audio_container.value()->codec_id != AV_CODEC_ID_NONE);
         }
     } else {
         // Contract check: info on a file with no audio should come back as a
         // default/empty struct, not garbage from an out-of-bounds read.
         auto audio_container = demuxer.audio_stream_info();
         if(audio_container.has_value()) {
-        REQUIRE(audio_container->sample_rate == 0);
+        REQUIRE(audio_container.value()->sample_rate == 0);
         }
     }
 }

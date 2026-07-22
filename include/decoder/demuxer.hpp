@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstdio>
 
-#include <libavcodec/codec_par.h>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -15,6 +15,7 @@ extern "C" {
 #include <libavcodec/codec_id.h>
 #include <libavcodec/packet.h>
 #include <libavutil/rational.h>
+#include <libavcodec/codec_par.h>
 }
 
 struct AVFormatContextDeleter {
@@ -38,21 +39,6 @@ struct AVPacketDeleter {
 
 using smart_packet = std::unique_ptr<AVPacket, AVPacketDeleter>;
 
-struct VideoInfo {
-    AVCodecID codec_id;
-    int width, height;
-    AVPixelFormat format;
-    int64_t bit_rate;
-    AVRational framerate;
-};
-
-struct AudioInfo {
-    AVCodecID codec_id;
-    int sample_rate;
-    AVSampleFormat format;
-    int channels;
-    int64_t bit_rate;
-};
 
 enum class PacketType {
     VIDEO,
