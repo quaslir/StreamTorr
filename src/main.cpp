@@ -1,6 +1,10 @@
+#include "decoder/demuxer.hpp"
 #include <iostream>
 
 int main(void) {
-    std::cout << "Project setup finished" << std::endl;
+    Demuxer demuxer;
+    std::string input{};
+    std::cin >> input;
+    std::cout << demuxer.open(input) << std::endl;
     return 0;
 }
