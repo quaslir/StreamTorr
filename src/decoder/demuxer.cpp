@@ -32,13 +32,14 @@ int audio_index = av_find_best_stream(format_context.get(), AVMEDIA_TYPE_AUDIO, 
 
 audio_stream_index = audio_index;
 
+open_ = true;
 return true;
 
 }
 
 
 bool Demuxer::is_open() const {
-    return format_context.get() != nullptr;
+    return open_;
 }
 
 bool Demuxer::has_video() const {

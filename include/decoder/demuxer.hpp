@@ -2,9 +2,7 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <libavcodec/codec_id.h>
-#include <libavcodec/packet.h>
-#include <libavutil/rational.h>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -13,6 +11,9 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
+#include <libavcodec/codec_id.h>
+#include <libavcodec/packet.h>
+#include <libavutil/rational.h>
 }
 
 struct AVFormatContextDeleter {
@@ -70,6 +71,8 @@ class Demuxer {
 
     int video_stream_index{-1};
     int audio_stream_index{-1};
+
+    bool open_{false};
   public:
       Demuxer();
       bool open(const std::string& filename);
