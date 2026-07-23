@@ -18,39 +18,11 @@ extern "C" {
 #include <libavcodec/codec_par.h>
 }
 
-struct AVFormatContextDeleter {
-    void operator ()(AVFormatContext * ctx) const{
-        if(ctx) {
-            avformat_close_input(&ctx);
-        }
-    }
-};
+#include "smart_items.hpp"
+#include "types.hpp"
 
 
-using smart_format_context = std::unique_ptr<AVFormatContext,AVFormatContextDeleter >;
 
-struct AVPacketDeleter {
-    void operator ()(AVPacket * packet) const{
-        if(packet) {
-            av_packet_free(&packet);
-        }
-    }
-};
-
-using smart_packet = std::unique_ptr<AVPacket, AVPacketDeleter>;
-
-
-enum class PacketType {
-    VIDEO,
-    AUDIO,
-    OTHER,
-    ERROR
-};
-
-struct DemuxedPacket {
-    PacketType type;
-    smart_packet packet;
-};
 
 class Demuxer {
   private:

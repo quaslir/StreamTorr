@@ -1,4 +1,4 @@
-#include "decoder/demuxer.hpp"
+#include "pipeline/pipeline.hpp"
 #include <iostream>
 
 int main(void) {
