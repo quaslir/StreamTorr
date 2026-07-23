@@ -3,9 +3,6 @@
 #include "decoder/demuxer.hpp"
 #include "decoder/audio_decoder.hpp"
 
-#ifndef STREAMTORR_TEST_VIDEO_PATH
-#endif
-
 namespace {
 constexpr const char* kTestVideoPath = STREAMTORR_TEST_VIDEO_PATH;
 constexpr int kMaxIterations = 200000;

@@ -3,8 +3,6 @@
 #include "decoder/demuxer.hpp"
 #include "decoder/video_decoder.hpp"
 
-#ifndef STREAMTORR_TEST_VIDEO_PATH
-#endif
 
 namespace {
 constexpr const char* kTestVideoPath = STREAMTORR_TEST_VIDEO_PATH;
@@ -34,11 +32,11 @@ TEST_CASE("Demuxer + VideoDecoder decode a full video stream without crashing",
 
     VideoDecoder video_decoder;
 
-    auto video_info = demuxer.video_stream_info();        
+    auto video_info = demuxer.video_stream_info();
 
          REQUIRE(video_info.has_value());
             REQUIRE(video_decoder.init(video_info.value()));
-    
+
 
 
     int video_packets_sent = 0;
@@ -87,10 +85,10 @@ TEST_CASE("VideoDecoder::flush resets state without crashing", "[video_decoder]"
     REQUIRE(demuxer.open(kTestVideoPath));
     REQUIRE(demuxer.has_video());
           VideoDecoder video_decoder;
-     auto video_info = demuxer.video_stream_info();        
+     auto video_info = demuxer.video_stream_info();
 
 REQUIRE(video_info.has_value());
-  
+
     REQUIRE(video_decoder.init(video_info.value()));
 
     // Decode a handful of packets first so there's actually some internal

@@ -21,7 +21,7 @@ class Pipeline {
         void decode_video_packet(const AVPacket* packet);
         void decode_audio_packet(const AVPacket* packet);
     public:
-
+        Pipeline();
         bool open(const std::string& filename);
         void start();
         void stop();

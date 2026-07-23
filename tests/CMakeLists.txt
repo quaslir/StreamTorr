@@ -8,22 +8,31 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(streamtorr_tests
+set(TEST_SOURCES
     decoder/test_demuxer.cpp
     decoder/test_video_decoder.cpp
     decoder/test_audio_decoder.cpp
-)
-
-target_link_libraries(streamtorr_tests PRIVATE
-    stream-torr-src
-    Catch2::Catch2WithMain
-)
-
-
-target_compile_definitions(streamtorr_tests PRIVATE
-    STREAMTORR_TEST_VIDEO_PATH="${CMAKE_SOURCE_DIR}/assets/test_media/sintel_trailer-1080p.mp4"
+    pipeline/test_pipeline.cpp
 )
 
 include(CTest)
 include(Catch)
-catch_discover_tests(streamtorr_tests)
+
+foreach(TEST_SOURCE IN LISTS TEST_SOURCES)
+    get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
+
+    add_executable(${TEST_NAME}
+        ${TEST_SOURCE}
+    )
+
+    target_link_libraries(${TEST_NAME} PRIVATE
+        stream-torr-src
+        Catch2::Catch2WithMain
+    )
+
+    target_compile_definitions(${TEST_NAME} PRIVATE
+        STREAMTORR_TEST_VIDEO_PATH="${CMAKE_SOURCE_DIR}/assets/test_media/sintel_trailer-1080p.mp4"
+    )
+
+    catch_discover_tests(${TEST_NAME})
+endforeach()

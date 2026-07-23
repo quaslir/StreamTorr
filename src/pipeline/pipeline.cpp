@@ -4,6 +4,8 @@
 #include "decoder/video_decoder.hpp"
 #include <thread>
 
+Pipeline::Pipeline() : video_queue_(10), audio_queue_(30) {}
+
 bool Pipeline::open(const std::string& filename) {
 bool demuxer_open = demuxer_.open(filename);
 
