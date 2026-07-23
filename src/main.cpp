@@ -1,6 +1,3 @@
-#include "pipeline/pipeline.hpp"
-#include <iostream>
-
-int main(void) {
+int main() {
     return 0;
 }
