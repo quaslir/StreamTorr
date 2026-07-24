@@ -13,6 +13,7 @@ set(TEST_SOURCES
     decoder/test_video_decoder.cpp
     decoder/test_audio_decoder.cpp
     pipeline/test_pipeline.cpp
+    media/test_audio_resampler.cpp
 )
 
 include(CTest)
