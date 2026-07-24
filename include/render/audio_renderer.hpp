@@ -1,5 +1,6 @@
 #include "smart_items.hpp"
 #include <SDL2/SDL.h>
+#include <cstdint>
 
 
 class AudioRenderer {
@@ -17,5 +18,6 @@ class AudioRenderer {
         bool open(int sample_rate, uint8_t channels, SDL_AudioFormat format);
         bool render_frame(const uint8_t* data, uint32_t size);
 
+        uint32_t queued_size() const;
         void close();
 };

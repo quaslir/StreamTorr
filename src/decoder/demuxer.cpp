@@ -1,5 +1,5 @@
 #include "decoder/demuxer.hpp"
-#include <algorithm>
+#include <assert.h>
 #include <libavcodec/avcodec.h>
 #include <libavcodec/codec.h>
 #include <libavcodec/codec_par.h>
@@ -7,7 +7,9 @@
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 #include <libavutil/error.h>
+#include <libavutil/rational.h>
 #include <optional>
+#include <utility>
 
 Demuxer::Demuxer() : format_context(avformat_alloc_context()) {}
 
@@ -80,4 +82,21 @@ std::optional<DemuxedPacket> Demuxer::read_next_packet() {
 
     return DemuxedPacket(packet_type, std::move(packet));
 
+}
+
+AVRational Demuxer::audio_time_base() const {
+    assert(has_audio());
+    return format_context->streams[audio_stream_index]->time_base;
+}
+
+AVRational Demuxer::video_time_base() const {
+    assert(has_video());
+    return format_context->streams[video_stream_index]->time_base;
+}
+
+std::optional<std::pair<int, int>> Demuxer::video_stream_size() const {
+    AVCodecParameters * codecpar = format_context->streams[video_stream_index]->codecpar;
+    if(!codecpar) return std::nullopt;
+
+    return std::make_pair(codecpar->width, codecpar->height);
 }
