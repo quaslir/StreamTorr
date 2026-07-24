@@ -85,7 +85,6 @@ std::optional<DemuxedPacket> Demuxer::read_next_packet() {
 }
 
 AVRational Demuxer::audio_time_base() const {
-    assert(has_audio());
     return format_context->streams[audio_stream_index]->time_base;
 }
 

@@ -25,7 +25,7 @@ int main()
     Player player;
 
     std::cout << "[MAIN] open\n";
-    bool opened = player.open("../assets/test_media/bbb_sunflower_1080p_60fps_normal.mp4");
+    bool opened = player.open("../assets/test_media/sintel_no_audio.mp4");
     std::cout << "[MAIN] open result: " << opened << "\n";
     if (!opened) { return 1; }
     std::cout << "[MAIN] play\n";

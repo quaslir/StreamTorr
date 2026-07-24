@@ -138,3 +138,7 @@ AVRational Pipeline::video_time_base() const {
 std::optional<std::pair<int, int>> Pipeline::video_stream_size() const {
     return demuxer_.video_stream_size();
 }
+
+bool Pipeline::has_audio() const {
+    return demuxer_.has_audio();
+}

@@ -36,4 +36,6 @@ class Pipeline {
         AVRational audio_time_base() const;
         AVRational video_time_base() const;
         std::optional<std::pair<int, int>> video_stream_size() const;
+
+        bool has_audio() const;
 };

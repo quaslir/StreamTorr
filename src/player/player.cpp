@@ -17,7 +17,9 @@ if(!video_renderer_.open(target_video_size->first, target_video_size->second)) r
 if(!audio_renderer_.open(48000,
     2,
     AUDIO_S16SYS)) return false;
+if(pipeline_.has_audio()) {
 audio_time_base_ = pipeline_.audio_time_base();
+}
 video_time_base_ = pipeline_.video_time_base();
 state_ = PlayerState::Ready;
 return true;
@@ -55,7 +57,9 @@ for(;;) {
 void Player::play() {
     if(state_ == PlayerState::Ready) {
     pipeline_.start();
+    if(pipeline_.has_audio()) {
     audio_thread_ = std::thread(&Player::audio_loop, this);
+    }
     state_ = PlayerState::Playing;
     }
 }
@@ -75,8 +79,28 @@ void Player::update() {
         }
     }
 
-    double frame_pts = static_cast<double>(pending_frame_->get()->pts) * av_q2d(video_time_base_);
+        double frame_pts = static_cast<double>(pending_frame_->get()->pts) * av_q2d(video_time_base_);
+
+    if(!clock_primed) {
+        playback_start_real_ = std::chrono::steady_clock::now();
+        playback_start_pts_ = frame_pts;
+        pipeline_.clock().update(frame_pts);
+        clock_primed = true;
+    }
+
+
+
+
+
     double clock_time = pipeline_.clock().get_time();
+
+    double elapsed_real = std::chrono::duration<double>(std::chrono::steady_clock::now() - playback_start_real_).count();
+
+    double estimated_clock = playback_start_pts_ + elapsed_real;
+
+    if(estimated_clock > clock_time) {
+        clock_time = estimated_clock;
+    }
 
     if(frame_pts > clock_time) {
         return;
@@ -89,15 +113,6 @@ void Player::update() {
     }
 
     pending_frame_.reset();
-    static int frames_shown = 0;
-        static auto last_report = std::chrono::steady_clock::now();
-        ++frames_shown;
-        auto now = std::chrono::steady_clock::now();
-        if (std::chrono::duration<double>(now - last_report).count() >= 1.0) {
-            std::fprintf(stderr, "[fps] real frames shown per second: %d\n", frames_shown);
-            frames_shown = 0;
-            last_report = now;
-        }
 
 }
 
