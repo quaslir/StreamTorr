@@ -46,7 +46,6 @@ if(result == 0) {
 return std::nullopt;
 
 }
-
 void VideoDecoder::flush() {
 avcodec_flush_buffers(codec_context.get());
 }
