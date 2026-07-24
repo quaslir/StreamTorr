@@ -21,6 +21,7 @@ bool AudioResampler::open(const AVCodecContext* decoder_ctx) {
 
 std::optional<smart_frame> AudioResampler::convert(const AVFrame* frame) {
    int samples =  swr_get_out_samples(swr_.get(), frame->nb_samples);
+   if(samples < 0) return std::nullopt;
    AVFrame * raw_frame = av_frame_alloc();
    smart_frame new_frame(raw_frame);
    if(!new_frame) return std::nullopt;
@@ -29,6 +30,7 @@ std::optional<smart_frame> AudioResampler::convert(const AVFrame* frame) {
    av_channel_layout_copy(&new_frame->ch_layout, &out_ch_layout_);
    new_frame->sample_rate = out_sample_rate_;
    new_frame->nb_samples = samples;
+   new_frame->pts = frame->pts;
    if(av_frame_get_buffer(new_frame.get(), 0) < 0) return std::nullopt;
    int converted = swr_convert(swr_.get(), new_frame->data, new_frame->nb_samples, const_cast<const uint8_t **>(frame->data), frame->nb_samples);
    if(converted < 0) return std::nullopt;

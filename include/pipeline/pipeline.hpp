@@ -5,6 +5,7 @@
 #include "decoder/frame_queue.hpp"
 #include "decoder/clock.hpp"
 #include "media/audio_resampler.hpp"
+#include <libavutil/rational.h>
 #include <thread>
 class Pipeline {
     private:
@@ -31,4 +32,10 @@ class Pipeline {
         FrameQueue<smart_frame>& video_frames();
         FrameQueue<smart_frame>& audio_frames();
         Clock& clock();
+
+        AVRational audio_time_base() const;
+        AVRational video_time_base() const;
+        std::optional<std::pair<int, int>> video_stream_size() const;
+
+        bool has_audio() const;
 };

@@ -126,3 +126,19 @@ return audio_queue_;
 Clock& Pipeline::clock()  {
     return clock_;
 }
+
+AVRational Pipeline::audio_time_base() const {
+    return demuxer_.audio_time_base();
+}
+
+AVRational Pipeline::video_time_base() const {
+    return demuxer_.video_time_base();
+}
+
+std::optional<std::pair<int, int>> Pipeline::video_stream_size() const {
+    return demuxer_.video_stream_size();
+}
+
+bool Pipeline::has_audio() const {
+    return demuxer_.has_audio();
+}

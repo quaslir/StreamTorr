@@ -11,7 +11,6 @@ bool AudioRenderer::open(int sample_rate, uint8_t channels, SDL_AudioFormat form
     desired.format = format;
     desired.callback = nullptr;
     device_ =  SDL_OpenAudioDevice(nullptr,0, &desired, nullptr,SDL_AUDIO_ALLOW_ANY_CHANGE);
-    std::cout << device_ << std::endl;
     SDL_PauseAudioDevice(device_, 0);
     return true;
 }
@@ -27,4 +26,8 @@ if(device_ != 0) {
     SDL_CloseAudioDevice(device_);
     device_ = 0;
 }
+}
+
+uint32_t AudioRenderer::queued_size() const {
+    return SDL_GetQueuedAudioSize(device_);
 }

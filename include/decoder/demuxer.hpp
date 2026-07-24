@@ -43,5 +43,9 @@ class Demuxer {
       std::optional<AVCodecParameters *> video_stream_info() const;
       std::optional<AVCodecParameters *> audio_stream_info() const;
 
+      std::optional<std::pair<int, int>> video_stream_size() const;
+
+      AVRational audio_time_base() const;
+        AVRational video_time_base() const;
       std::optional<DemuxedPacket> read_next_packet();
 };

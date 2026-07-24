@@ -1,7 +1,7 @@
 #include "decoder/audio_decoder.hpp"
 #include <cerrno>
 #include <optional>
-
+#include <cstdio>
 bool AudioDecoder::init(AVCodecParameters * codecpar) {
     const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
     if(!codec) return false;
@@ -31,19 +31,22 @@ return DecoderSendResult::Error;
 }
 
 std::optional<smart_frame> AudioDecoder::receive_frame() {
-
     smart_frame frame(av_frame_alloc());
+    if (!frame) return std::nullopt;
 
-if(!frame) return std::nullopt;
+    int result = avcodec_receive_frame(codec_context.get(), frame.get());
 
-int result = avcodec_receive_frame(codec_context.get(), frame.get());
+    if (result == 0) {
+        return frame;
+    }
 
-if(result == 0) {
-    return frame;
-}
+    if (result != AVERROR(EAGAIN) && result != AVERROR_EOF) {
+        char err_buf[128];
+        av_strerror(result, err_buf, sizeof(err_buf));
+        std::fprintf(stderr, "[audio_decoder] receive_frame REAL ERROR: %s (code=%d)\n", err_buf, result);
+    }
 
-return std::nullopt;
-
+    return std::nullopt;
 }
 
 void AudioDecoder::flush() {
