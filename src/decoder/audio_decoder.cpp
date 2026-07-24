@@ -49,3 +49,7 @@ return std::nullopt;
 void AudioDecoder::flush() {
 avcodec_flush_buffers(codec_context.get());
 }
+
+const AVCodecContext* AudioDecoder::get_codec_context() const {
+    return codec_context.get();
+}

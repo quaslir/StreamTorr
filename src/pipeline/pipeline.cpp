@@ -18,6 +18,7 @@ if(demuxer_.has_video()) {
     bool video_decoder_open = video_decoder_.init(video_info.value());
 
     if(!video_decoder_open) return false;
+
 }
 
 if(demuxer_.has_audio()) {
@@ -27,7 +28,10 @@ if(demuxer_.has_audio()) {
     bool audio_decoder_open = audio_decoder_.init(audio_info.value());
 
     if(!audio_decoder_open) return false;
+    if(!audio_resampler_.open(audio_decoder_.get_codec_context())) return false;
 }
+
+
 
 return true;
 }
@@ -62,14 +66,20 @@ void Pipeline::decode_audio_packet(const AVPacket* packet) {
     DecoderSendResult result =  audio_decoder_.send_packet(packet);
 
     while(auto frame = audio_decoder_.receive_frame()) {
-        audio_queue_.push(std::move(*frame));
+        auto resampled_frame = audio_resampler_.convert(frame->get());
+        if(resampled_frame.has_value()) {
+        audio_queue_.push(std::move(*resampled_frame));
+        }
     }
 
     if(result == DecoderSendResult::NeedsMoreOutput) {
         audio_decoder_.send_packet(packet);
 
         while(auto frame = audio_decoder_.receive_frame()) {
-            audio_queue_.push(std::move(*frame));
+            auto resampled_frame = audio_resampler_.convert(frame->get());
+            if(resampled_frame.has_value()) {
+            audio_queue_.push(std::move(*resampled_frame));
+            }
         }
     }
 }

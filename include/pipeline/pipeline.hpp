@@ -4,6 +4,7 @@
 #include "decoder/audio_decoder.hpp"
 #include "decoder/frame_queue.hpp"
 #include "decoder/clock.hpp"
+#include "media/audio_resampler.hpp"
 #include <thread>
 class Pipeline {
     private:
@@ -12,6 +13,7 @@ class Pipeline {
         AudioDecoder audio_decoder_;
         FrameQueue<smart_frame> video_queue_;
         FrameQueue<smart_frame> audio_queue_;
+        AudioResampler audio_resampler_;
         Clock clock_;
 
         std::thread demux_thread_;

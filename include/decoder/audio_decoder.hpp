@@ -20,4 +20,5 @@ bool init(AVCodecParameters * codecpar);
 DecoderSendResult send_packet(const AVPacket* packet);
 std::optional<smart_frame> receive_frame();
 void flush();
+const AVCodecContext* get_codec_context() const;
 };
