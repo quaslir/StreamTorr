@@ -25,6 +25,23 @@ state_ = PlayerState::Ready;
 return true;
 }
 
+bool Player::open_torrent(const std::string& magnet, const std::filesystem::path& download_dir) {
+    if(!pipeline_.open_torrent(magnet, download_dir)) return false;
+    auto target_video_size = pipeline_.video_stream_size();
+    if(!target_video_size.has_value()) return false;
+    if(!video_renderer_.open(target_video_size->first, target_video_size->second)) return false;
+    if(!audio_renderer_.open(48000,
+        2,
+        AUDIO_S16SYS)) return false;
+    if(pipeline_.has_audio()) {
+    audio_time_base_ = pipeline_.audio_time_base();
+    }
+    video_time_base_ = pipeline_.video_time_base();
+    state_ = PlayerState::Ready;
+    return true;
+}
+
+
 void Player::audio_loop() {
 for(;;) {
     auto frame = pipeline_.audio_frames().pop();
@@ -68,6 +85,7 @@ void Player::update() {
     if(state_ != PlayerState::Playing) return;
     if(video_renderer_.poll_events() == RenderEvent::WINDOW_CLOSED) {
         stop();
+        state_ = PlayerState::Finished;
         return;
     }
 
@@ -88,10 +106,6 @@ void Player::update() {
         clock_primed = true;
     }
 
-
-
-
-
     double clock_time = pipeline_.clock().get_time();
 
     double elapsed_real = std::chrono::duration<double>(std::chrono::steady_clock::now() - playback_start_real_).count();
@@ -109,10 +123,12 @@ void Player::update() {
 
     if(!video_renderer_.render_frame(pending_frame_->get())) {
         stop();
+        state_ = PlayerState::Finished;
         return;
     }
 
     pending_frame_.reset();
+
 
 }
 
@@ -122,4 +138,7 @@ void Player::stop() {
     video_renderer_.close();
 
     state_ = PlayerState::Stopped;
+}
+PlayerState Player::state() const {
+    return state_;
 }

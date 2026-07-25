@@ -32,17 +32,20 @@ class Player {
     bool clock_primed{false};
     std::chrono::steady_clock::time_point   playback_start_real_;
     double playback_start_pts_{0.0};
+
     void audio_loop();
 
 
     public:
 
         bool open(const std::string& path);
-
+        bool open_torrent(const std::string& magnet, const std::filesystem::path& download_dir);
         void play();
 
 
         void update();
 
         void stop();
+
+        PlayerState state() const;
 };

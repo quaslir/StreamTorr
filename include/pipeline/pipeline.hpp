@@ -4,8 +4,12 @@
 #include "decoder/audio_decoder.hpp"
 #include "decoder/frame_queue.hpp"
 #include "decoder/clock.hpp"
+#include "io/torrent_io_context.hpp"
 #include "media/audio_resampler.hpp"
 #include <libavutil/rational.h>
+#include <filesystem>
+#include "torrent/torrent_client.hpp"
+#include "io/torrent_io_context.hpp"
 #include <thread>
 class Pipeline {
     private:
@@ -16,7 +20,8 @@ class Pipeline {
         FrameQueue<smart_frame> audio_queue_;
         AudioResampler audio_resampler_;
         Clock clock_;
-
+        TorrentClient torrent_client_;
+        TorrentIOContext io_context_;
         std::thread demux_thread_;
         std::atomic<bool> running_{false};
 
@@ -26,6 +31,7 @@ class Pipeline {
     public:
         Pipeline();
         bool open(const std::string& filename);
+        bool open_torrent(const std::string& magnet, const std::filesystem::path& download_dir);
         void start();
         void stop();
 
