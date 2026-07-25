@@ -1,0 +1,103 @@
+#include "io/torrent_io_context.hpp"
+#include "torrent/torrent_client.hpp"
+#include <cerrno>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <fstream>
+#include <ios>
+extern "C" {
+    #include <libavformat/avio.h>
+    #include <libavutil/error.h>
+    #include <libavutil/mem.h>
+}
+
+
+bool TorrentIOContext::open(TorrentClient * client, const std::filesystem::path& file_path, int64_t file_offset_in_torrent, int64_t total_size) {
+    if(!client) return false;
+    client_ = client;
+    path_ = file_path;
+    file_offset_in_torrent_ = file_offset_in_torrent;
+    total_size_ = total_size;
+
+    std::ifstream file(file_path, std::ios::binary);
+    if(!file.is_open()) return false;
+
+    file_stream_ = std::move(file);
+    constexpr size_t kBufferSize = 32768;
+  avio_buffer_ =  static_cast<uint8_t*>(av_malloc(kBufferSize));
+  if(!avio_buffer_) {
+      return false;
+  }
+
+avio_context_ =   avio_alloc_context(avio_buffer_, kBufferSize, 0, this, &TorrentIOContext::read_packet_callback, nullptr,&TorrentIOContext::seek_callback);
+if(!avio_context_) {
+    av_free(avio_buffer_);
+    avio_buffer_ = nullptr;
+    return false;
+}
+return true;
+
+}
+
+int TorrentIOContext::read_packet(uint8_t * buf, int buf_size) {
+    int64_t absolute_offset = current_position_ + file_offset_in_torrent_;
+    constexpr uint64_t kPriorityWindowBytes = 2 * 1024 * 1024;
+    client_->prioritize_range(static_cast<uint64_t>(absolute_offset), kPriorityWindowBytes);
+    constexpr uint32_t kTimeoutMs = 30000;
+    if(!client_->wait_for_range(static_cast<uint64_t>(absolute_offset), static_cast<uint64_t>(buf_size), kTimeoutMs))     return AVERROR(EIO);
+    file_stream_.clear();
+    file_stream_.seekg(current_position_);
+    file_stream_.read(reinterpret_cast<char *>(buf), buf_size);
+   std::streamsize gcount =  file_stream_.gcount();
+   if(gcount == 0) return AVERROR_EOF;
+   current_position_ += gcount;
+   return static_cast<int>(gcount);
+
+}
+
+int TorrentIOContext::read_packet_callback(void * opaque, uint8_t * buf, int buf_size) {
+    auto * self = static_cast<TorrentIOContext*>(opaque);
+    return self->read_packet(buf, buf_size);
+}
+
+int64_t TorrentIOContext::seek(int64_t offset, int whence) {
+    int64_t new_position = current_position_;
+    switch(whence) {
+        case SEEK_SET :
+            new_position = offset;
+            break;
+        case SEEK_CUR:
+            new_position += offset;
+            break;
+        case SEEK_END :
+            new_position = total_size_ + offset;
+            break;
+        case AVSEEK_SIZE:
+            return total_size_;
+
+        default: return -1;
+    }
+    if(new_position < 0 || new_position > total_size_) {
+        return -1;
+    }
+
+    current_position_ = new_position;
+    return current_position_;
+}
+
+int64_t TorrentIOContext::seek_callback(void * opaque, int64_t offset, int whence) {
+    auto * self = static_cast<TorrentIOContext*>(opaque);
+    return self->seek(offset, whence);
+}
+
+AVIOContext * TorrentIOContext::avio_context() const {
+    return avio_context_;
+}
+
+TorrentIOContext::~TorrentIOContext() {
+    if(avio_context_) {
+        av_free(avio_context_->buffer);
+        avio_context_free(&avio_context_);
+    }
+}

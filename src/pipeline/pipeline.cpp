@@ -2,6 +2,7 @@
 #include "pipeline/pipeline.hpp"
 #include "decoder/demuxer.hpp"
 #include "decoder/video_decoder.hpp"
+#include <chrono>
 #include <thread>
 
 Pipeline::Pipeline() : video_queue_(10), audio_queue_(30) {}
@@ -35,6 +36,52 @@ if(demuxer_.has_audio()) {
 
 return true;
 }
+
+
+bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::path& download_dir) {
+    if(!torrent_client_.add_source(magnet, download_dir)) return false;
+
+    int waited = 0;
+
+    while(!torrent_client_.has_metadata()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        if(++waited > 60) {
+            return false;
+        }
+    }
+
+    auto file_info = torrent_client_.video_file_info();
+    if(!file_info.has_value()) {
+        return false;
+    }
+
+    if(!io_context_.open(&torrent_client_, file_info->path, file_info->offset_in_torrent, file_info->size)) return false;
+    if(!demuxer_.open_with_io_context(io_context_.avio_context())) return false;
+
+    if(demuxer_.has_video()) {
+        auto video_info = demuxer_.video_stream_info();
+        if(!video_info.has_value()) return false;
+
+        bool video_decoder_open = video_decoder_.init(video_info.value());
+
+        if(!video_decoder_open) return false;
+
+    }
+
+    if(demuxer_.has_audio()) {
+        auto audio_info = demuxer_.audio_stream_info();
+        if(!audio_info.has_value()) return false;
+
+        bool audio_decoder_open = audio_decoder_.init(audio_info.value());
+
+        if(!audio_decoder_open) return false;
+        if(!audio_resampler_.open(audio_decoder_.get_codec_context())) return false;
+    }
+
+    return true;
+
+}
+
 
 void Pipeline::start() {
     running_ = true;

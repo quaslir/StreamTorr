@@ -39,6 +39,28 @@ return true;
 
 }
 
+bool Demuxer::open_with_io_context(AVIOContext* io_context) {
+    AVFormatContext* raw_ctx = format_context.release();
+
+    raw_ctx->pb = io_context;
+    raw_ctx->flags |= AVFMT_FLAG_CUSTOM_IO;
+
+    if(avformat_open_input(&raw_ctx, "", nullptr, nullptr) < 0) return false;
+    format_context.reset(raw_ctx);
+    int video_index = av_find_best_stream(format_context.get(), AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+
+    if(video_index < 0) return false;
+
+    video_stream_index = video_index;
+
+    int audio_index = av_find_best_stream(format_context.get(), AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+
+    audio_stream_index = audio_index;
+
+    open_ = true;
+    return true;
+}
+
 
 bool Demuxer::is_open() const {
     return open_;

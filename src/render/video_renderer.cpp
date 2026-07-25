@@ -2,11 +2,13 @@
 #include <SDL2/SDL.h>
 
 bool VideoRenderer::open(int width, int height,   const char* window_title) {
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
    SDL_Window * window =  SDL_CreateWindow(window_title, 0, 0, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+
    if(!window) return false;
    window_.reset(window);
 
-  SDL_Renderer* renderer =  SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  SDL_Renderer* renderer =  SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
    if(!renderer) return false;
    renderer_.reset(renderer);
  SDL_Texture * texture =   SDL_CreateTexture(renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, width, height);
