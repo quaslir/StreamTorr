@@ -39,4 +39,7 @@ class TorrentIOContext {
 
         uint8_t * avio_buffer_{nullptr};
         AVIOContext * avio_context_{nullptr};
+
+        int64_t last_prioritized_pos_{-1};
+
 };

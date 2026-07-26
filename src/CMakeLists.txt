@@ -8,7 +8,7 @@ set(DECODER_SOURCES decoder/demuxer.cpp decoder/video_decoder.cpp decoder/audio_
 set(PIPELINE_SOURCES pipeline/pipeline.cpp)
 set(RENDER_SOURCES render/video_renderer.cpp render/audio_renderer.cpp)
 set(PLAYER_SOURCES player/player.cpp)
-set(MEDIA_SOURCES media/audio_resampler.cpp)
+set(MEDIA_SOURCES media/video_resampler.cpp media/audio_resampler.cpp)
 set(IO_TORRENT_SOURCES io/torrent_io_context.cpp)
 add_library(${STREAMTORR_LIB_NAME} STATIC ${TORRENT_SOURCES} ${DECODER_SOURCES} ${PIPELINE_SOURCES} ${RENDER_SOURCES} ${PLAYER_SOURCES}
 ${MEDIA_SOURCES} ${IO_TORRENT_SOURCES})

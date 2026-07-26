@@ -6,6 +6,7 @@
 #include "decoder/clock.hpp"
 #include "io/torrent_io_context.hpp"
 #include "media/audio_resampler.hpp"
+#include "media/video_resampler.hpp"
 #include <libavutil/rational.h>
 #include <filesystem>
 #include "torrent/torrent_client.hpp"
@@ -13,18 +14,21 @@
 #include <thread>
 class Pipeline {
     private:
+                TorrentIOContext io_context_;
         Demuxer demuxer_;
         VideoDecoder video_decoder_;
         AudioDecoder audio_decoder_;
         FrameQueue<smart_frame> video_queue_;
         FrameQueue<smart_frame> audio_queue_;
         AudioResampler audio_resampler_;
+        VideoResampler video_resampler_;
         Clock clock_;
         TorrentClient torrent_client_;
-        TorrentIOContext io_context_;
+
         std::thread demux_thread_;
         std::atomic<bool> running_{false};
 
+        bool video_resampler_ready_{false};
         void demux_loop();
         void decode_video_packet(const AVPacket* packet);
         void decode_audio_packet(const AVPacket* packet);

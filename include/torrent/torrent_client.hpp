@@ -25,14 +25,14 @@ class TorrentClient {
 
          std::thread alert_thread_;
 
-         std::atomic<bool> running{false};
+         std::atomic<bool> running_{false};
 
          mutable std::mutex mutex_;
          mutable std::condition_variable piece_downloaded_cv_;
 
          bool source_added_{false};
 
-         lt::settings_pack make_default_settings() const;
+         static lt::settings_pack make_default_settings() ;
     public:
         TorrentClient();
         ~TorrentClient();

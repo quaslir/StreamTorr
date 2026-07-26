@@ -1,6 +1,4 @@
 #include "torrent/torrent_client.hpp"
-#include <arm_neon.h>
-#include <charconv>
 #include <chrono>
 #include <cstdint>
 #include <libtorrent/add_torrent_params.hpp>
@@ -34,6 +32,7 @@ bool TorrentClient::add_source(const std::string& magnet, const std::filesystem:
     source_added_ = true;
 
     download_dir_ = download_dir;
+    running_ = true;
     alert_thread_= std::thread(&TorrentClient::alert_loop, this);
 
     return true;
@@ -43,7 +42,7 @@ lt::torrent_status TorrentClient::status() const {
     return handle_.status();
 }
 
-lt::settings_pack TorrentClient::make_default_settings() const {
+lt::settings_pack TorrentClient::make_default_settings()  {
     lt::settings_pack settings;
     settings.set_bool(lt::settings_pack::enable_dht, true);
     return settings;
@@ -99,11 +98,12 @@ void TorrentClient::prioritize_range(uint64_t offset, uint64_t length) {
 
     auto torrent_info = handle_.torrent_file();
     if(!torrent_info) return;
-
+    int num_pieces = torrent_info->num_pieces();
     int64_t piece_length = torrent_info->piece_length();
     int first_piece{static_cast<int>(offset / static_cast<uint64_t>(piece_length))};
     int last_piece{static_cast<int>((offset + length - 1) / static_cast<uint64_t>(piece_length))};
-
+    last_piece = std::min(last_piece, num_pieces - 1);
+    if(first_piece > last_piece) return;
     for(int i = first_piece; i <= last_piece; i++) {
         handle_.piece_priority(lt::piece_index_t(i), lt::top_priority);
     }
@@ -125,7 +125,7 @@ bool TorrentClient::wait_for_range(uint64_t offset, uint64_t length, uint32_t ti
 }
 
 void TorrentClient::alert_loop() {
-    while(running) {
+    while(running_) {
         std::vector<lt::alert*> alerts;
         session_.pop_alerts(&alerts);
         for(auto * alert : alerts) {
@@ -139,6 +139,6 @@ void TorrentClient::alert_loop() {
 }
 
 TorrentClient::~TorrentClient() {
-    running = false;
+    running_ = false;
     if(alert_thread_.joinable()) alert_thread_.join();
 }
