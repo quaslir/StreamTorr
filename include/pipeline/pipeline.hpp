@@ -14,6 +14,7 @@
 #include <thread>
 class Pipeline {
     private:
+                TorrentIOContext io_context_;
         Demuxer demuxer_;
         VideoDecoder video_decoder_;
         AudioDecoder audio_decoder_;
@@ -23,7 +24,7 @@ class Pipeline {
         VideoResampler video_resampler_;
         Clock clock_;
         TorrentClient torrent_client_;
-        TorrentIOContext io_context_;
+
         std::thread demux_thread_;
         std::atomic<bool> running_{false};
 

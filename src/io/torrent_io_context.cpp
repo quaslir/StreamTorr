@@ -21,7 +21,7 @@ bool TorrentIOContext::open(TorrentClient * client, const std::filesystem::path&
     path_ = file_path;
     file_offset_in_torrent_ = file_offset_in_torrent;
     total_size_ = total_size;
-
+    current_position_ = 0;
     std::ifstream file(file_path, std::ios::binary);
     if(!file.is_open()) return false;
 
@@ -43,14 +43,22 @@ return true;
 }
 
 int TorrentIOContext::read_packet(uint8_t * buf, int buf_size) {
+    if(current_position_ >= total_size_) return AVERROR_EOF;
+    int64_t remaining = total_size_ - current_position_;
+    int to_read = static_cast<int>(std::min<int64_t>(buf_size, remaining));
     int64_t absolute_offset = current_position_ + file_offset_in_torrent_;
+    constexpr int64_t kRepriorityStep = 4 * 1024 * 1024;
     constexpr uint64_t kPriorityWindowBytes = 16 * 1024 * 1024;
-    client_->prioritize_range(static_cast<uint64_t>(absolute_offset), kPriorityWindowBytes);
+    if(last_prioritized_pos_ < 0 || std::abs(current_position_ - last_prioritized_pos_) > kRepriorityStep) {
+        client_->prioritize_range(static_cast<uint64_t>(absolute_offset), kPriorityWindowBytes);
+        last_prioritized_pos_ = current_position_;
+    }
+
     constexpr uint32_t kTimeoutMs = 30000;
-    if(!client_->wait_for_range(static_cast<uint64_t>(absolute_offset), static_cast<uint64_t>(buf_size), kTimeoutMs))     return AVERROR(EIO);
+    if(!client_->wait_for_range(static_cast<uint64_t>(absolute_offset), static_cast<uint64_t>(to_read), kTimeoutMs))     return AVERROR(EIO);
     file_stream_.clear();
     file_stream_.seekg(current_position_);
-    file_stream_.read(reinterpret_cast<char *>(buf), buf_size);
+    file_stream_.read(reinterpret_cast<char *>(buf), to_read);
    std::streamsize gcount =  file_stream_.gcount();
    if(gcount == 0) return AVERROR_EOF;
    current_position_ += gcount;

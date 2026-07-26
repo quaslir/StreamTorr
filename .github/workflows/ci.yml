@@ -2,34 +2,65 @@ name: C++ Hardcore CI
 
 on:
   push:
-    branches: ["**"]
+    branches:
+      - "**"
   pull_request:
-    branches: ["**"]
+    branches:
+      - "**"
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+
     strategy:
+      fail-fast: false
       matrix:
-        compiler: [g++-13, clang++-18]
+        compiler:
+          - g++-13
+          - clang++-18
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             cmake \
+            ninja-build \
+            g++-13 \
+            clang-18 \
             libssl-dev \
-            clang-18
+            libboost-all-dev
 
-      - name: Configure CMake
+      - name: Show environment
+        run: |
+          cmake --version
+          ${{ matrix.compiler }} --version
+
+          echo "Boost check:"
+          ls -d /usr/include/boost
+
+      - name: Configure
+        env:
+          Boost_NO_BOOST_CMAKE: ON
         run: |
           cmake -B build \
+            -G Ninja \
             -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror -fsanitize=address,undefined"
+            -DBoost_NO_BOOST_CMAKE=ON \
+            -DBoost_INCLUDE_DIR=/usr/include \
+            -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror -fsanitize=address,undefined" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
 
       - name: Build
-        run: cmake --build build --parallel $(nproc)
+        run: |
+          cmake --build build --parallel
+
+      - name: Test
+        working-directory: build
+        run: |
+          ctest --output-on-failure
