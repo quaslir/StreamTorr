@@ -28,6 +28,7 @@ class Pipeline {
         std::thread demux_thread_;
         std::atomic<bool> running_{false};
 
+        bool video_resampler_ready_{false};
         void demux_loop();
         void decode_video_packet(const AVPacket* packet);
         void decode_audio_packet(const AVPacket* packet);

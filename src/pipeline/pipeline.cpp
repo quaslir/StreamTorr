@@ -22,9 +22,6 @@ if(demuxer_.has_video()) {
     bool video_decoder_open = video_decoder_.init(video_info.value());
 
     if(!video_decoder_open) return false;
-    AVPixelFormat src_format = video_decoder_.get_codec_context()->pix_fmt;
-    if(!video_resampler_.open(video_info.value()->width, video_info.value()->height, src_format)) return false;
-
 }
 
 if(demuxer_.has_audio()) {
@@ -75,9 +72,7 @@ bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::pa
         bool video_decoder_open = video_decoder_.init(video_info.value());
 
         if(!video_decoder_open) return false;
-        AVPixelFormat src_format = video_decoder_.get_codec_context()->pix_fmt;
 
-        if(!video_resampler_.open(video_info.value()->width, video_info.value()->height, src_format)) return false;
 
     }
 
@@ -110,22 +105,31 @@ void Pipeline::stop() {
 void Pipeline::decode_video_packet(const AVPacket* packet) {
     DecoderSendResult result =  video_decoder_.send_packet(packet);
 
-    while(auto frame = video_decoder_.receive_frame()) {
-        auto resampled_frame = video_resampler_.convert(frame->get());
-        if(resampled_frame.has_value()) {
-        video_queue_.push(std::move(*resampled_frame));
-        }
-    }
-
-    if(result == DecoderSendResult::NeedsMoreOutput) {
-        video_decoder_.send_packet(packet);
-
+    auto push_frame = [this]() -> void {
         while(auto frame = video_decoder_.receive_frame()) {
+            if(!video_resampler_ready_) {
+                AVPixelFormat real_format = static_cast<AVPixelFormat>(frame->get()->format);
+                if(!video_resampler_.open(frame->get()->width, frame->get()->height, real_format)) {
+                    continue;
+                }
+                video_resampler_ready_ = true;
+            }
             auto resampled_frame = video_resampler_.convert(frame->get());
             if(resampled_frame.has_value()) {
             video_queue_.push(std::move(*resampled_frame));
             }
         }
+    };
+
+    push_frame();
+
+
+
+
+    if(result == DecoderSendResult::NeedsMoreOutput) {
+        video_decoder_.send_packet(packet);
+
+        push_frame();
     }
 }
 void Pipeline::decode_audio_packet(const AVPacket* packet) {
