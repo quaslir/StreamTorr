@@ -27,6 +27,8 @@ RenderEvent VideoRenderer::poll_events() {
         if(event.type == SDL_QUIT) {
             result = RenderEvent::WINDOW_CLOSED;
         }
+        else if((event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE) ||
+            (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)) result = RenderEvent::PAUSE;
     }
 
     return result;

@@ -33,9 +33,10 @@ class Player {
     std::chrono::steady_clock::time_point   playback_start_real_;
     double playback_start_pts_{0.0};
 
+    std::chrono::steady_clock::time_point pause_started_at_;
     void audio_loop();
 
-
+    void toggle_pause();
     public:
 
         bool open(const std::string& path);

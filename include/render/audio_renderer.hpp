@@ -20,4 +20,5 @@ class AudioRenderer {
 
         uint32_t queued_size() const;
         void close();
+        void pause(bool should_pause);
 };

@@ -31,3 +31,7 @@ if(device_ != 0) {
 uint32_t AudioRenderer::queued_size() const {
     return SDL_GetQueuedAudioSize(device_);
 }
+
+void AudioRenderer::pause(bool should_pause) {
+    SDL_PauseAudioDevice(device_, should_pause ? 1 : 0);
+}
