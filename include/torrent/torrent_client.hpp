@@ -32,7 +32,7 @@ class TorrentClient {
 
          bool source_added_{false};
 
-         lt::settings_pack make_default_settings() const;
+         static lt::settings_pack make_default_settings() ;
     public:
         TorrentClient();
         ~TorrentClient();

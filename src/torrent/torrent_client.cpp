@@ -1,5 +1,4 @@
 #include "torrent/torrent_client.hpp"
-#include <arm_neon.h>
 #include <charconv>
 #include <chrono>
 #include <cstdint>
@@ -43,7 +42,7 @@ lt::torrent_status TorrentClient::status() const {
     return handle_.status();
 }
 
-lt::settings_pack TorrentClient::make_default_settings() const {
+lt::settings_pack TorrentClient::make_default_settings()  {
     lt::settings_pack settings;
     settings.set_bool(lt::settings_pack::enable_dht, true);
     return settings;

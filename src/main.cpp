@@ -4,13 +4,6 @@
 #include "player/player.hpp"
 
 // Big Buck Bunny — official Blender Foundation magnet, safe test source.
-constexpr const char* kMagnetUri =
-    "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny"
-    "&tr=udp://explodie.org:6969&tr=udp://tracker.coppersurfer.tk:6969"
-    "&tr=udp://tracker.empire-js.us:1337&tr=udp://tracker.leechers-paradise.org:6969"
-    "&tr=udp://tracker.opentrackr.org:1337&tr=wss://tracker.btorrent.xyz"
-    "&tr=wss://tracker.fastcast.nz&tr=wss://tracker.openwebtorrent.com";
-
 constexpr const char* kDownloadDir = "./downloads";
 
 int main() {
@@ -22,9 +15,10 @@ int main() {
 
     std::fprintf(stderr, "[MAIN] create player\n");
     Player player;
-
+        std::string magnet;
+        std::cin >> magnet;
     std::fprintf(stderr, "[MAIN] open_torrent (this will download metadata + start streaming)\n");
-    if (!player.open_torrent(kMagnetUri, kDownloadDir)) {
+    if (!player.open_torrent(magnet, kDownloadDir)) {
         std::fprintf(stderr, "[MAIN] open_torrent FAILED\n");
         SDL_Quit();
         return 1;

@@ -6,6 +6,7 @@
 #include "decoder/clock.hpp"
 #include "io/torrent_io_context.hpp"
 #include "media/audio_resampler.hpp"
+#include "media/video_resampler.hpp"
 #include <libavutil/rational.h>
 #include <filesystem>
 #include "torrent/torrent_client.hpp"
@@ -19,6 +20,7 @@ class Pipeline {
         FrameQueue<smart_frame> video_queue_;
         FrameQueue<smart_frame> audio_queue_;
         AudioResampler audio_resampler_;
+        VideoResampler video_resampler_;
         Clock clock_;
         TorrentClient torrent_client_;
         TorrentIOContext io_context_;

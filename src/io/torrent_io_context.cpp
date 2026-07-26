@@ -14,6 +14,8 @@ extern "C" {
 
 
 bool TorrentIOContext::open(TorrentClient * client, const std::filesystem::path& file_path, int64_t file_offset_in_torrent, int64_t total_size) {
+    std::fprintf(stderr, "[io] open: file_offset_in_torrent=%lld, total_size=%lld\n",
+        static_cast<long long>(file_offset_in_torrent), static_cast<long long>(total_size));
     if(!client) return false;
     client_ = client;
     path_ = file_path;
@@ -24,7 +26,7 @@ bool TorrentIOContext::open(TorrentClient * client, const std::filesystem::path&
     if(!file.is_open()) return false;
 
     file_stream_ = std::move(file);
-    constexpr size_t kBufferSize = 32768;
+    constexpr size_t kBufferSize = 256 * 1024;
   avio_buffer_ =  static_cast<uint8_t*>(av_malloc(kBufferSize));
   if(!avio_buffer_) {
       return false;
@@ -42,7 +44,7 @@ return true;
 
 int TorrentIOContext::read_packet(uint8_t * buf, int buf_size) {
     int64_t absolute_offset = current_position_ + file_offset_in_torrent_;
-    constexpr uint64_t kPriorityWindowBytes = 2 * 1024 * 1024;
+    constexpr uint64_t kPriorityWindowBytes = 16 * 1024 * 1024;
     client_->prioritize_range(static_cast<uint64_t>(absolute_offset), kPriorityWindowBytes);
     constexpr uint32_t kTimeoutMs = 30000;
     if(!client_->wait_for_range(static_cast<uint64_t>(absolute_offset), static_cast<uint64_t>(buf_size), kTimeoutMs))     return AVERROR(EIO);
