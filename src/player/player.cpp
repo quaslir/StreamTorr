@@ -82,16 +82,26 @@ void Player::play() {
 }
 
 void Player::update() {
-    if(state_ != PlayerState::Playing) return;
-    if(video_renderer_.poll_events() == RenderEvent::WINDOW_CLOSED) {
+    if(state_ != PlayerState::Playing && state_ != PlayerState::Paused) return;
+    RenderEvent event = video_renderer_.poll_events();
+    if(event == RenderEvent::WINDOW_CLOSED) {
         stop();
         state_ = PlayerState::Finished;
+        return;
+    }
+
+    else if(event == RenderEvent::PAUSE) {
+        toggle_pause();
+    }
+
+    if(state_ == PlayerState::Paused) {
         return;
     }
 
     if(!pending_frame_) {
         pending_frame_ = pipeline_.video_frames().pop();
         if(!pending_frame_) {
+            stop();
             state_ = PlayerState::Finished;
             return;
         }
@@ -141,4 +151,18 @@ void Player::stop() {
 }
 PlayerState Player::state() const {
     return state_;
+}
+
+void Player::toggle_pause() {
+    if(state_ != PlayerState::Paused) {
+        pause_started_at_ = std::chrono::steady_clock::now();
+        audio_renderer_.pause(true);
+        state_ = PlayerState::Paused;
+    }
+    else {
+        auto pause_duration = std::chrono::steady_clock::now() - pause_started_at_;
+        playback_start_real_ +=     pause_duration;
+        audio_renderer_.pause(false);
+        state_ = PlayerState::Playing;
+    }
 }

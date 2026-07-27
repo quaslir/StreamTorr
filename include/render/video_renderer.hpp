@@ -6,7 +6,8 @@ extern "C" {
 
 enum RenderEvent {
     NONE,
-    WINDOW_CLOSED
+    WINDOW_CLOSED,
+    PAUSE
 };
 
 class VideoRenderer {
