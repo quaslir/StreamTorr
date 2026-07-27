@@ -1,11 +1,15 @@
 
 #include "pipeline/pipeline.hpp"
 #include "decoder/demuxer.hpp"
+#include "decoder/smart_items.hpp"
+#include "decoder/types.hpp"
 #include "decoder/video_decoder.hpp"
 #include "media/video_resampler.hpp"
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <libavutil/pixfmt.h>
+#include <mutex>
 #include <thread>
 
 Pipeline::Pipeline() : video_queue_(10), audio_queue_(30) {}
@@ -102,54 +106,68 @@ void Pipeline::stop() {
     if(demux_thread_.joinable()) demux_thread_.join();
 }
 
+bool Pipeline::seek(double seconds) {
+    video_queue_.clear();
+    audio_queue_.clear();
+
+    std::lock_guard<std::mutex> lock(pipeline_mutex_);
+    if(!demuxer_.seek(seconds)) return false;
+    video_decoder_.flush();
+    audio_decoder_.flush();
+    video_queue_.clear();
+    audio_queue_.clear();
+    return true;
+}
+
 void Pipeline::decode_video_packet(const AVPacket* packet) {
-    DecoderSendResult result =  video_decoder_.send_packet(packet);
+    DecoderSendResult result = DecoderSendResult::Error;
+    (void)result;
+    std::vector<smart_frame> ready_frames;
 
-    auto push_frame = [this]() -> void {
-        while(auto frame = video_decoder_.receive_frame()) {
-            if(!video_resampler_ready_) {
-                AVPixelFormat real_format = static_cast<AVPixelFormat>(frame->get()->format);
-                if(!video_resampler_.open(frame->get()->width, frame->get()->height, real_format)) {
-                    continue;
+    {
+        std::lock_guard<std::mutex> lock(pipeline_mutex_);
+                result =  video_decoder_.send_packet(packet);
+
+                while(auto frame = video_decoder_.receive_frame()) {
+                    ready_frames.push_back(std::move(*frame));
                 }
-                video_resampler_ready_ = true;
-            }
-            auto resampled_frame = video_resampler_.convert(frame->get());
-            if(resampled_frame.has_value()) {
-            video_queue_.push(std::move(*resampled_frame));
-            }
-        }
-    };
-
-    push_frame();
-
-
-
-
-    if(result == DecoderSendResult::NeedsMoreOutput) {
-        video_decoder_.send_packet(packet);
-
-        push_frame();
     }
+
+    for(auto& frame : ready_frames) {
+        if(!video_resampler_ready_) {
+            AVPixelFormat real_format = static_cast<AVPixelFormat>(frame->format);
+            if(!video_resampler_.open(frame->width, frame->height, real_format)) continue;
+            video_resampler_ready_ = true;
+        }
+
+        auto resampled = video_resampler_.convert(frame.get());
+        if(resampled.has_value()) {
+            video_queue_.push(std::move(*resampled));
+        }
+    }
+
+
+
 }
 void Pipeline::decode_audio_packet(const AVPacket* packet) {
-    DecoderSendResult result =  audio_decoder_.send_packet(packet);
+    DecoderSendResult result = DecoderSendResult::Error;
+    (void)result;
+    std::vector<smart_frame> ready_frames;
 
-    while(auto frame = audio_decoder_.receive_frame()) {
-        auto resampled_frame = audio_resampler_.convert(frame->get());
-        if(resampled_frame.has_value()) {
-        audio_queue_.push(std::move(*resampled_frame));
-        }
+    {
+        std::lock_guard<std::mutex> lock(pipeline_mutex_);
+                result =  audio_decoder_.send_packet(packet);
+
+                while(auto frame = audio_decoder_.receive_frame()) {
+                    ready_frames.push_back(std::move(*frame));
+                }
     }
 
-    if(result == DecoderSendResult::NeedsMoreOutput) {
-        audio_decoder_.send_packet(packet);
+    for(auto& frame : ready_frames) {
 
-        while(auto frame = audio_decoder_.receive_frame()) {
-            auto resampled_frame = audio_resampler_.convert(frame->get());
-            if(resampled_frame.has_value()) {
-            audio_queue_.push(std::move(*resampled_frame));
-            }
+        auto resampled = audio_resampler_.convert(frame.get());
+        if(resampled.has_value()) {
+            audio_queue_.push(std::move(*resampled));
         }
     }
 }
@@ -157,7 +175,11 @@ void Pipeline::decode_audio_packet(const AVPacket* packet) {
 
 void Pipeline::demux_loop() {
     while(running_) {
-       auto packet =  demuxer_.read_next_packet();
+        std::optional<DemuxedPacket> packet;
+    {
+        std::lock_guard<std::mutex> lock(pipeline_mutex_);
+           packet =  demuxer_.read_next_packet();
+    }
 
        if(!packet.has_value()) {
            video_queue_.close();
@@ -167,12 +189,15 @@ void Pipeline::demux_loop() {
 
        switch(packet->type) {
            case PacketType::VIDEO: {
+
                decode_video_packet(packet->packet.get());
            break;
            }
-           case PacketType::AUDIO :
+
+           case PacketType::AUDIO : {
            decode_audio_packet(packet->packet.get());
            break;
+           }
 
            case PacketType::OTHER :
            break;

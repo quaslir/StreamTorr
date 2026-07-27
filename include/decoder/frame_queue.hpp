@@ -9,7 +9,7 @@ template <typename T>
 class FrameQueue {
     private:
         std::deque<T> queue_;
-        std::mutex mutex_;
+        mutable std::mutex mutex_;
         std::condition_variable not_empty_;
         std::condition_variable not_full_;
 
@@ -57,4 +57,13 @@ class FrameQueue {
             return closed_.load(std::memory_order_relaxed);
         }
 
+        void clear() {
+            std::lock_guard<std::mutex> lock(mutex_);
+            queue_.clear();
+            not_full_.notify_all();
+        }
+        bool empty() const {
+            std::lock_guard<std::mutex> lock(mutex_);
+            return queue_.empty();
+        }
 };

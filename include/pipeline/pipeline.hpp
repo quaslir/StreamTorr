@@ -16,6 +16,7 @@ class Pipeline {
     private:
                 TorrentIOContext io_context_;
         Demuxer demuxer_;
+        std::mutex pipeline_mutex_;
         VideoDecoder video_decoder_;
         AudioDecoder audio_decoder_;
         FrameQueue<smart_frame> video_queue_;
@@ -38,7 +39,7 @@ class Pipeline {
         bool open_torrent(const std::string& magnet, const std::filesystem::path& download_dir);
         void start();
         void stop();
-
+        bool seek(double seconds);
         FrameQueue<smart_frame>& video_frames();
         FrameQueue<smart_frame>& audio_frames();
         Clock& clock();

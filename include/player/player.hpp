@@ -35,7 +35,7 @@ class Player {
 
     std::chrono::steady_clock::time_point pause_started_at_;
     void audio_loop();
-
+    void seek(double seconds);
     void toggle_pause();
     public:
 

@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdint>
 #include <ctime>
+#include <unistd.h>
 extern "C" {
 #include <libavutil/frame.h>
 #include <libavutil/rational.h>
@@ -40,6 +41,7 @@ bool Player::open_torrent(const std::string& magnet, const std::filesystem::path
     state_ = PlayerState::Ready;
     return true;
 }
+
 
 
 void Player::audio_loop() {
@@ -81,6 +83,13 @@ void Player::play() {
     }
 }
 
+void Player::seek(double seconds) {
+if(!pipeline_.seek(seconds)) return;
+pending_frame_.reset();
+clock_primed = false;
+
+}
+
 void Player::update() {
     if(state_ != PlayerState::Playing && state_ != PlayerState::Paused) return;
     RenderEvent event = video_renderer_.poll_events();
@@ -93,12 +102,18 @@ void Player::update() {
     else if(event == RenderEvent::PAUSE) {
         toggle_pause();
     }
-
+    else if(event == RenderEvent::SEEK_BACKWARD) {
+        seek(pipeline_.clock().get_time() - 10);
+    }
+    else if(event == RenderEvent::SEEK_FORWARD) {
+          seek(pipeline_.clock().get_time() + 10);
+    }
     if(state_ == PlayerState::Paused) {
         return;
     }
 
     if(!pending_frame_) {
+        if(pipeline_.video_frames().empty()) return;
         pending_frame_ = pipeline_.video_frames().pop();
         if(!pending_frame_) {
             stop();

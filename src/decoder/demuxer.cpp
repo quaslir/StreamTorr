@@ -1,5 +1,6 @@
 #include "decoder/demuxer.hpp"
 #include <assert.h>
+#include <cstdint>
 #include <libavcodec/avcodec.h>
 #include <libavcodec/codec.h>
 #include <libavcodec/codec_par.h>
@@ -59,6 +60,13 @@ bool Demuxer::open_with_io_context(AVIOContext* io_context) {
 
     open_ = true;
     return true;
+}
+
+bool Demuxer::seek(double seconds) {
+    if(!is_open()) return false;
+    int64_t timestamp = static_cast<int64_t>(seconds * AV_TIME_BASE);
+    int res = av_seek_frame(format_context.get(), -1, timestamp, AVSEEK_FLAG_BACKWARD);
+    return res >= 0;
 }
 
 
