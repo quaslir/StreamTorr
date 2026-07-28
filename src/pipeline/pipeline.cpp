@@ -12,7 +12,7 @@
 #include <mutex>
 #include <thread>
 
-Pipeline::Pipeline() : video_queue_(10), audio_queue_(30) {}
+Pipeline::Pipeline() : video_queue_(80), audio_queue_(160) {}
 
 bool Pipeline::open(const std::string& filename) {
 bool demuxer_open = demuxer_.open(filename);

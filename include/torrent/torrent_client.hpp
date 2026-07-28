@@ -9,6 +9,7 @@
 #include <libtorrent/torrent_status.hpp>
 #include <optional>
 #include <thread>
+#include <mutex>
 
 enum class TorrentStage {
     FetchingMetadata,
@@ -30,6 +31,13 @@ struct VideoFileInfo {
     int64_t size;
 };
 
+struct ActiveWindow {
+    mutable std::mutex mutex_;
+    uint64_t offset_;
+    uint64_t length_;
+    bool set_{false};
+};
+
 class TorrentClient {
     private:
         lt::session session_;
@@ -44,11 +52,11 @@ class TorrentClient {
          mutable std::mutex mutex_;
          mutable std::mutex progress_cb_mutex_;
          mutable std::condition_variable piece_downloaded_cv_;
-
+         ActiveWindow active_window_;
          bool source_added_{false};
 
          static lt::settings_pack make_default_settings() ;
-
+         void apply_priority(uint64_t offset, uint64_t length);
     public:
         TorrentClient();
         ~TorrentClient();
