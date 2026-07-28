@@ -25,7 +25,10 @@ video_time_base_ = pipeline_.video_time_base();
 state_ = PlayerState::Ready;
 return true;
 }
-
+void Player::set_progress_callback(ProgressCallback cb) {
+    progress_cb_ = cb;
+    pipeline_.set_progress_callback(cb);
+}
 bool Player::open_torrent(const std::string& magnet, const std::filesystem::path& download_dir) {
     if(!pipeline_.open_torrent(magnet, download_dir)) return false;
     auto target_video_size = pipeline_.video_stream_size();

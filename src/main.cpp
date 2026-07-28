@@ -14,8 +14,12 @@ int main(int argc, char * argv[]) {
     }
 
     Player player;
+    player.set_progress_callback([](TorrentProgress p) {
+const char * stage_name =  p.stage == TorrentStage::FetchingMetadata ? "metadata" :
+       p.stage == TorrentStage::DownloadingHeadTail ? "buffering" : "ready";
+   std::fprintf(stderr, "[LOADING] %s %.1f%%\n", stage_name, static_cast<double>(p.percent * 100.0f));
+    });
 
-    std::fprintf(stderr, "[MAIN] open_torrent (this will download metadata + start streaming)\n");
     if (!player.open_torrent(path_or_url, kDownloadDir)) {
         std::fprintf(stderr, "[MAIN] open_torrent FAILED\n");
         if(!player.open(path_or_url)) {

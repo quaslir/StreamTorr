@@ -62,7 +62,7 @@ int TorrentIOContext::read_packet(uint8_t * buf, int buf_size) {
     int to_read = static_cast<int>(std::min<int64_t>(buf_size, remaining));
     int64_t absolute_offset = current_position_ + file_offset_in_torrent_;
     constexpr int64_t kRepriorityStep = 4 * 1024 * 1024;
-    constexpr uint64_t kPriorityWindowBytes = 16 * 1024 * 1024;
+    constexpr uint64_t kPriorityWindowBytes = 4 * 1024 * 1024;
     if(last_prioritized_pos_ < 0 || std::abs(current_position_ - last_prioritized_pos_) > kRepriorityStep) {
         client_->prioritize_range(static_cast<uint64_t>(absolute_offset), kPriorityWindowBytes);
         last_prioritized_pos_ = current_position_;

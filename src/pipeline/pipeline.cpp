@@ -44,6 +44,10 @@ return true;
 }
 
 
+void Pipeline::set_progress_callback(ProgressCallback cb) {
+    progress_cb_ = cb;
+    torrent_client_.set_progress_callback(progress_cb_);
+}
 bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::path& download_dir) {
 
     if(!torrent_client_.add_source(magnet, download_dir)) return false;
@@ -52,21 +56,36 @@ bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::pa
 
     while(!torrent_client_.has_metadata()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        if(progress_cb_) {
+            progress_cb_({TorrentStage::FetchingMetadata, std::min(1.0f,waited / 180.0f)});
+        }
         if(++waited > 180) {
             return false;
         }
     }
+    if(progress_cb_) progress_cb_({TorrentStage::FetchingMetadata, 1.0f});
 
     auto file_info = torrent_client_.video_file_info();
     if(!file_info.has_value()) {
         return false;
     }
-    constexpr uint64_t kInitialWindowBytes = 16 * 1024 * 1024;
+    constexpr uint64_t kInitialWindowBytes = 4 * 1024 * 1024;
     torrent_client_.prioritize_range(static_cast<uint64_t>(file_info->offset_in_torrent), kInitialWindowBytes);
 
-    constexpr uint64_t kTailWindowBytes = 16 * 1024 * 1024;
+    constexpr uint64_t kTailWindowBytes = 4 * 1024 * 1024;
     uint64_t tail_start = static_cast<uint64_t>(file_info->offset_in_torrent + file_info->size) - std::min(kTailWindowBytes, static_cast<uint64_t>(file_info->size));
     torrent_client_.prioritize_range(tail_start, kTailWindowBytes);
+
+    int head_waited = 0;
+    while(torrent_client_.window_progress(static_cast<uint64_t>((file_info->offset_in_torrent)), kInitialWindowBytes) < 1.0f){
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            if(progress_cb_) {
+                progress_cb_({TorrentStage::DownloadingHeadTail, torrent_client_.window_progress(static_cast<uint64_t>((file_info->offset_in_torrent)), kInitialWindowBytes)});
+
+            }
+            if(++head_waited > 200) break;
+    }
+    if(progress_cb_) progress_cb_({TorrentStage::Ready, 1.0f});
 
     if(!io_context_.open(&torrent_client_, file_info->path, file_info->offset_in_torrent, file_info->size)) return false;
 

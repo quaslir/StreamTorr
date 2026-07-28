@@ -25,7 +25,7 @@ class Pipeline {
         VideoResampler video_resampler_;
         Clock clock_;
         TorrentClient torrent_client_;
-
+        ProgressCallback progress_cb_;
         std::thread demux_thread_;
         std::atomic<bool> running_{false};
 
@@ -37,6 +37,7 @@ class Pipeline {
         Pipeline();
         bool open(const std::string& filename);
         bool open_torrent(const std::string& magnet, const std::filesystem::path& download_dir);
+        void set_progress_callback(ProgressCallback cb);
         void start();
         void stop();
         bool seek(double seconds);

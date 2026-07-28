@@ -20,6 +20,7 @@ enum class PlayerState
 class Player {
     private:
     Pipeline pipeline_;
+    ProgressCallback progress_cb_;
     VideoRenderer video_renderer_;
     AudioRenderer audio_renderer_;
     Clock clock_;
@@ -41,6 +42,7 @@ class Player {
 
         bool open(const std::string& path);
         bool open_torrent(const std::string& magnet, const std::filesystem::path& download_dir);
+        void set_progress_callback(ProgressCallback cb);
         void play();
 
 
