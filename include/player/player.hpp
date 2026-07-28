@@ -13,10 +13,12 @@ enum class PlayerState
     Playing,
     Paused,
     Stopped,
-    Finished
+    Finished,
+    Buffering
 };
 
-
+constexpr double kLowWatermark = 1.0;
+constexpr double kHighWatermark = 2.0;
 class Player {
     private:
     Pipeline pipeline_;

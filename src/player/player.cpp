@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdint>
 #include <ctime>
+#include <iostream>
 #include <unistd.h>
 extern "C" {
 #include <libavutil/frame.h>
@@ -94,7 +95,7 @@ clock_primed = false;
 }
 
 void Player::update() {
-    if(state_ != PlayerState::Playing && state_ != PlayerState::Paused) return;
+    if(state_ != PlayerState::Playing && state_ != PlayerState::Paused && state_ != PlayerState::Buffering) return;
     RenderEvent event = video_renderer_.poll_events();
     if(event == RenderEvent::WINDOW_CLOSED) {
         stop();
@@ -111,8 +112,25 @@ void Player::update() {
     else if(event == RenderEvent::SEEK_FORWARD) {
           seek(pipeline_.clock().get_time() + 10);
     }
+
     if(state_ == PlayerState::Paused) {
         return;
+    }
+    else if(state_ == PlayerState::Playing && pipeline_.buffered_seconds() < kLowWatermark) {
+        std::cerr << "Entering buffered state..." << std::endl;
+        pause_started_at_ = std::chrono::steady_clock::now();
+        audio_renderer_.pause(true);
+        state_ = PlayerState::Buffering;
+        return;
+    }
+
+    else if(state_ == PlayerState::Buffering) {
+        if((pipeline_.buffered_seconds() < kHighWatermark)) return;
+        auto pause_duration = std::chrono::steady_clock::now() - pause_started_at_;
+        playback_start_real_ += pause_duration;
+        audio_renderer_.pause(false);
+        state_ = PlayerState::Playing;
+        std::cerr << "Exitting buffering state..." << std::endl;
     }
 
     if(!pending_frame_) {

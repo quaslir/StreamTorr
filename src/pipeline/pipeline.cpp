@@ -6,6 +6,7 @@
 #include "decoder/video_decoder.hpp"
 #include "media/video_resampler.hpp"
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <libavutil/pixfmt.h>
@@ -57,7 +58,7 @@ bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::pa
     while(!torrent_client_.has_metadata()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         if(progress_cb_) {
-            progress_cb_({TorrentStage::FetchingMetadata, std::min(1.0f,waited / 180.0f)});
+            progress_cb_({TorrentStage::FetchingMetadata, std::min(1.0f,static_cast<float>(waited) / 180.0f)});
         }
         if(++waited > 180) {
             return false;
@@ -166,6 +167,8 @@ void Pipeline::decode_video_packet(const AVPacket* packet) {
 
         auto resampled = video_resampler_.convert(frame.get());
         if(resampled.has_value()) {
+            double pts_seconds = static_cast<double>(resampled.value()->pts) * av_q2d(demuxer_.video_time_base());
+            latest_video_pts_seconds_.store(pts_seconds, std::memory_order_relaxed);
             video_queue_.push(std::move(*resampled));
         }
     }
@@ -260,4 +263,9 @@ std::optional<std::pair<int, int>> Pipeline::video_stream_size() const {
 
 bool Pipeline::has_audio() const {
     return demuxer_.has_audio();
+}
+
+double Pipeline::buffered_seconds() const {
+return latest_video_pts_seconds_.load(std::memory_order_relaxed) -
+clock_.get_time();
 }

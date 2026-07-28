@@ -30,6 +30,7 @@ class Pipeline {
         std::atomic<bool> running_{false};
 
         bool video_resampler_ready_{false};
+        std::atomic<double> latest_video_pts_seconds_{0.0};
         void demux_loop();
         void decode_video_packet(const AVPacket* packet);
         void decode_audio_packet(const AVPacket* packet);
@@ -41,6 +42,8 @@ class Pipeline {
         void start();
         void stop();
         bool seek(double seconds);
+
+        double buffered_seconds() const;
         FrameQueue<smart_frame>& video_frames();
         FrameQueue<smart_frame>& audio_frames();
         Clock& clock();
