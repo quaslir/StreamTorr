@@ -45,6 +45,7 @@ return true;
 
 
 bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::path& download_dir) {
+
     if(!torrent_client_.add_source(magnet, download_dir)) return false;
 
     int waited = 0;
@@ -66,8 +67,12 @@ bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::pa
     constexpr uint64_t kTailWindowBytes = 16 * 1024 * 1024;
     uint64_t tail_start = static_cast<uint64_t>(file_info->offset_in_torrent + file_info->size) - std::min(kTailWindowBytes, static_cast<uint64_t>(file_info->size));
     torrent_client_.prioritize_range(tail_start, kTailWindowBytes);
+
     if(!io_context_.open(&torrent_client_, file_info->path, file_info->offset_in_torrent, file_info->size)) return false;
+
+
     if(!demuxer_.open_with_io_context(io_context_.avio_context())) return false;
+
 
     if(demuxer_.has_video()) {
         auto video_info = demuxer_.video_stream_info();

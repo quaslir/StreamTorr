@@ -4,7 +4,7 @@
 #include <cstdio>
 
 
-#include <libavformat/avio.h>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -17,6 +17,7 @@ extern "C" {
 #include <libavcodec/packet.h>
 #include <libavutil/rational.h>
 #include <libavcodec/codec_par.h>
+#include <libavformat/avio.h>
 }
 
 #include "smart_items.hpp"
