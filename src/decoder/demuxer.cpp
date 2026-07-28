@@ -1,15 +1,19 @@
 #include "decoder/demuxer.hpp"
-#include <assert.h>
-#include <libavcodec/avcodec.h>
-#include <libavcodec/codec.h>
-#include <libavcodec/codec_par.h>
-#include <libavcodec/packet.h>
-#include <libavformat/avformat.h>
-#include <libavutil/avutil.h>
-#include <libavutil/error.h>
-#include <libavutil/rational.h>
+#include <cstdint>
+extern "C" {
+    #include <libavcodec/avcodec.h>
+    #include <libavcodec/codec.h>
+    #include <libavcodec/codec_par.h>
+    #include <libavcodec/packet.h>
+    #include <libavformat/avformat.h>
+    #include <libavutil/avutil.h>
+    #include <libavutil/error.h>
+    #include <libavutil/rational.h>
+}
+
 #include <optional>
 #include <utility>
+#include <iostream>
 
 Demuxer::Demuxer() : format_context(avformat_alloc_context()) {}
 
@@ -45,6 +49,7 @@ bool Demuxer::open_with_io_context(AVIOContext* io_context) {
     raw_ctx->pb = io_context;
     raw_ctx->flags |= AVFMT_FLAG_CUSTOM_IO;
 
+
     if(avformat_open_input(&raw_ctx, "", nullptr, nullptr) < 0) return false;
     format_context.reset(raw_ctx);
     int video_index = av_find_best_stream(format_context.get(), AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
@@ -59,6 +64,13 @@ bool Demuxer::open_with_io_context(AVIOContext* io_context) {
 
     open_ = true;
     return true;
+}
+
+bool Demuxer::seek(double seconds) {
+    if(!is_open()) return false;
+    int64_t timestamp = static_cast<int64_t>(seconds * AV_TIME_BASE);
+    int res = av_seek_frame(format_context.get(), -1, timestamp, AVSEEK_FLAG_BACKWARD);
+    return res >= 0;
 }
 
 
@@ -111,7 +123,6 @@ AVRational Demuxer::audio_time_base() const {
 }
 
 AVRational Demuxer::video_time_base() const {
-    assert(has_video());
     return format_context->streams[video_stream_index]->time_base;
 }
 

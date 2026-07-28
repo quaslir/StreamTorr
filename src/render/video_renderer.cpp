@@ -29,6 +29,13 @@ RenderEvent VideoRenderer::poll_events() {
         }
         else if((event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE) ||
             (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)) result = RenderEvent::PAUSE;
+
+        else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_LEFT) {
+            result = RenderEvent::SEEK_BACKWARD;
+        }
+        else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RIGHT) {
+            result = RenderEvent::SEEK_FORWARD;
+        }
     }
 
     return result;

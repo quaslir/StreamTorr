@@ -21,13 +21,17 @@ bool TorrentClient::add_source(const std::string& magnet, const std::filesystem:
 
     try {
         params = lt::parse_magnet_uri(magnet);
-    } catch(...) {return false;}
+    } catch(...) {
+
+        return false;}
 
     params.save_path = download_dir.string();
 
     handle_ = session_.add_torrent(params);
 
-    if(!handle_.is_valid()) return false;
+    if(!handle_.is_valid()) {
+            return false;
+    }
 
     source_added_ = true;
 
@@ -45,6 +49,9 @@ lt::torrent_status TorrentClient::status() const {
 lt::settings_pack TorrentClient::make_default_settings()  {
     lt::settings_pack settings;
     settings.set_bool(lt::settings_pack::enable_dht, true);
+    settings.set_int(lt::settings_pack::connections_limit, 200);
+    settings.set_int(lt::settings_pack::download_rate_limit, 0);
+    settings.set_int(lt::settings_pack::request_timeout, 5);
     return settings;
 }
 
@@ -104,14 +111,12 @@ void TorrentClient::prioritize_range(uint64_t offset, uint64_t length) {
     int last_piece{static_cast<int>((offset + length - 1) / static_cast<uint64_t>(piece_length))};
     last_piece = std::min(last_piece, num_pieces - 1);
     if(first_piece > last_piece) return;
+
     for(int i = first_piece; i <= last_piece; i++) {
         handle_.piece_priority(lt::piece_index_t(i), lt::top_priority);
-    }
 
-    int deadline_count =    std::min(3, (last_piece - first_piece + 1));
-
-    for(int i = 0; i < deadline_count; i++) {
-        handle_.set_piece_deadline(lt::piece_index_t(first_piece + i), 1000);
+        int deadline_ms = 500 + (i - first_piece) * 150;
+        handle_.set_piece_deadline(lt::piece_index_t(i), deadline_ms);
     }
 
 

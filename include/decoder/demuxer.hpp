@@ -4,7 +4,7 @@
 #include <cstdio>
 
 
-#include <libavformat/avio.h>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -17,6 +17,7 @@ extern "C" {
 #include <libavcodec/packet.h>
 #include <libavutil/rational.h>
 #include <libavcodec/codec_par.h>
+#include <libavformat/avio.h>
 }
 
 #include "smart_items.hpp"
@@ -37,6 +38,8 @@ class Demuxer {
       Demuxer();
       bool open(const std::string& filename);
       bool open_with_io_context(AVIOContext* io_context);
+
+      bool seek(double seconds);
       bool is_open() const;
 
       bool has_video() const;

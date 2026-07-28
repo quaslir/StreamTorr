@@ -1,11 +1,15 @@
 #include "io/torrent_io_context.hpp"
 #include "torrent/torrent_client.hpp"
 #include <cerrno>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <ios>
+#include <sys/wait.h>
+#include <thread>
 extern "C" {
     #include <libavformat/avio.h>
     #include <libavutil/error.h>
@@ -22,9 +26,19 @@ bool TorrentIOContext::open(TorrentClient * client, const std::filesystem::path&
     file_offset_in_torrent_ = file_offset_in_torrent;
     total_size_ = total_size;
     current_position_ = 0;
-    std::ifstream file(file_path, std::ios::binary);
-    if(!file.is_open()) return false;
 
+
+    constexpr auto kFileWaitTimeout = std::chrono::seconds(30);
+    auto wait_start = std::chrono::steady_clock::now();
+    while(!std::filesystem::exists(file_path)) {
+        if(std::chrono::steady_clock::now() - wait_start > kFileWaitTimeout) {
+             std::fprintf(stderr, "[io] open: file never appeared: %s\n", file_path.c_str());
+             return false;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+        std::ifstream file(file_path, std::ios::binary);
+        if(!file.is_open()) return false;
     file_stream_ = std::move(file);
     constexpr size_t kBufferSize = 256 * 1024;
   avio_buffer_ =  static_cast<uint8_t*>(av_malloc(kBufferSize));
@@ -60,7 +74,16 @@ int TorrentIOContext::read_packet(uint8_t * buf, int buf_size) {
     file_stream_.seekg(current_position_);
     file_stream_.read(reinterpret_cast<char *>(buf), to_read);
    std::streamsize gcount =  file_stream_.gcount();
-   if(gcount == 0) return AVERROR_EOF;
+   if(gcount == 0){
+       for(int attempt = 0; attempt < 5 && gcount == 0; attempt++) {
+           std::this_thread::sleep_for(std::chrono::milliseconds(50));
+           file_stream_.clear();
+           file_stream_.seekg(current_position_);
+           file_stream_.read(reinterpret_cast<char *>(buf), to_read);
+           gcount = file_stream_.gcount();
+       }
+       if(gcount == 0) return AVERROR_EOF;
+   }
    current_position_ += gcount;
    return static_cast<int>(gcount);
 

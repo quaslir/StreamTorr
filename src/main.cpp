@@ -6,22 +6,22 @@
 // Big Buck Bunny — official Blender Foundation magnet, safe test source.
 constexpr const char* kDownloadDir = "./downloads";
 
-int main() {
-    std::fprintf(stderr, "[MAIN] SDL_Init\n");
+int main(int argc, char * argv[]) {
+    if(argc < 2) return -1;
+    std::string path_or_url{argv[1]};
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
-        std::fprintf(stderr, "[MAIN] SDL_Init FAILED: %s\n", SDL_GetError());
         return 1;
     }
 
-    std::fprintf(stderr, "[MAIN] create player\n");
     Player player;
-        std::string magnet;
-        std::cin >> magnet;
+
     std::fprintf(stderr, "[MAIN] open_torrent (this will download metadata + start streaming)\n");
-    if (!player.open_torrent(magnet, kDownloadDir)) {
+    if (!player.open_torrent(path_or_url, kDownloadDir)) {
         std::fprintf(stderr, "[MAIN] open_torrent FAILED\n");
+        if(!player.open(path_or_url)) {
         SDL_Quit();
         return 1;
+        }
     }
 
     std::fprintf(stderr, "[MAIN] play\n");

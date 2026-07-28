@@ -7,7 +7,9 @@ extern "C" {
 enum RenderEvent {
     NONE,
     WINDOW_CLOSED,
-    PAUSE
+    PAUSE,
+    SEEK_FORWARD,
+    SEEK_BACKWARD
 };
 
 class VideoRenderer {
@@ -18,9 +20,6 @@ class VideoRenderer {
 
         int texture_width_{0};
         int texture_height_{0};
-
-        //bool sdl_video_initialized{false};
-
 
     public:
         VideoRenderer() = default;
