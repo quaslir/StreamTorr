@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <filesystem>
+#include <mutex>
 enum class TorrentStage {
     FetchingMetadata,
     DownloadingHeadTail,

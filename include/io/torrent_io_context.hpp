@@ -7,6 +7,7 @@
 extern "C" {
     #include <libavformat/avio.h>
 }
+#include <atomic>
 
 class TorrentClient;
 
