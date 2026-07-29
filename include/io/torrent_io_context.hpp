@@ -3,10 +3,11 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-
+#include "torrent/types.hpp"
 extern "C" {
     #include <libavformat/avio.h>
 }
+#include <atomic>
 
 class TorrentClient;
 
@@ -15,6 +16,9 @@ class TorrentIOContext {
     public:
 
     bool open(TorrentClient * client, const std::filesystem::path& file_path, int64_t file_offset_in_torrent, int64_t total_size);
+    void set_progress_callback(ProgressCallback cb);
+    void set_reporting(bool on = true);
+
     AVIOContext * avio_context() const;
     TorrentIOContext() = default;
     ~TorrentIOContext();
@@ -41,5 +45,9 @@ class TorrentIOContext {
         AVIOContext * avio_context_{nullptr};
 
         int64_t last_prioritized_pos_{-1};
+
+        ProgressCallback progress_cb_;
+        std::atomic<bool> reporting_{true};
+        float max_reported_progress{0.0f};
 
 };

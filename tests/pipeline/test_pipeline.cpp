@@ -33,18 +33,18 @@ int drain_queue(FrameQueue<smart_frame>& queue) {
 
 TEST_CASE("Pipeline::open fails gracefully on a missing file", "[pipeline]") {
     Pipeline pipeline;
-    REQUIRE_FALSE(pipeline.open(kNonExistentPath));
+    REQUIRE_FALSE(pipeline.open_local(kNonExistentPath));
 }
 
 TEST_CASE("Pipeline::open succeeds on a valid media file", "[pipeline]") {
     Pipeline pipeline;
-    REQUIRE(pipeline.open(kTestVideoPath));
+    REQUIRE(pipeline.open_local(kTestVideoPath));
 }
 
 TEST_CASE("Pipeline produces both video and audio frames end-to-end",
           "[pipeline][integration]") {
     Pipeline pipeline;
-    REQUIRE(pipeline.open(kTestVideoPath));
+    REQUIRE(pipeline.open_local(kTestVideoPath));
 
     pipeline.start();
 
@@ -75,7 +75,7 @@ TEST_CASE("Pipeline::stop is safe to call without ever consuming frames",
     // inside FrameQueue::push() once the bounded queues fill up. stop()
     // must still be able to unblock and join it via close().
     Pipeline pipeline;
-    REQUIRE(pipeline.open(kTestVideoPath));
+    REQUIRE(pipeline.open_local(kTestVideoPath));
 
     pipeline.start();
 
@@ -91,7 +91,7 @@ TEST_CASE("Pipeline can be opened and run more than once (sequential runs)",
           "[pipeline]") {
     for (int run = 0; run < 2; ++run) {
         Pipeline pipeline;
-        REQUIRE(pipeline.open(kTestVideoPath));
+        REQUIRE(pipeline.open_local(kTestVideoPath));
         pipeline.start();
 
         int video_frames = 0;
