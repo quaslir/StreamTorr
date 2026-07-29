@@ -1,4 +1,5 @@
 #include "torrent/torrent_client.hpp"
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <libtorrent/add_torrent_params.hpp>
@@ -66,6 +67,11 @@ float TorrentClient::window_progress(uint64_t offset, uint64_t length) const {
 void TorrentClient::set_progress_callback(ProgressCallback cb) {
     std::lock_guard<std::mutex> lock(progress_cb_mutex_);
     progress_cb_ = cb;
+}
+
+void TorrentClient::set_abort_wait(bool status) {
+    abort_wait_.store(status, std::memory_order_relaxed);
+    piece_downloaded_cv_.notify_all();
 }
 
 lt::torrent_status TorrentClient::status() const {
@@ -159,11 +165,14 @@ active_window_.set_ = true;
 apply_priority(offset, length);
 }
 bool TorrentClient::wait_for_range(uint64_t offset, uint64_t length, uint32_t timeout_ms) const {
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
     std::unique_lock<std::mutex> lock(mutex_);
-    return piece_downloaded_cv_.wait_for(lock, std::chrono::milliseconds(timeout_ms),
-        [this, offset, length] {
-            return is_range_available(offset, length);
-        });
+    while(std::chrono::steady_clock::now() < deadline) {
+        if(is_range_available(offset, length)) return true;
+        if(abort_wait_.load(std::memory_order_relaxed)) return false;
+        piece_downloaded_cv_.wait_for(lock, std::chrono::milliseconds(500));
+    }
+   return is_range_available(offset, length);
 }
 
 void TorrentClient::alert_loop() {

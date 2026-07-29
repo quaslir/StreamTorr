@@ -1,5 +1,5 @@
 #include "io/torrent_io_context.hpp"
-#include "torrent/torrent_client.hpp"
+#include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <cstddef>
@@ -8,13 +8,15 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
-#include <sys/wait.h>
+#include "configuration/config.hpp"
+#include "torrent/types.hpp"
 #include <thread>
 extern "C" {
     #include <libavformat/avio.h>
     #include <libavutil/error.h>
     #include <libavutil/mem.h>
 }
+#include "torrent/torrent_client.hpp"
 
 
 bool TorrentIOContext::open(TorrentClient * client, const std::filesystem::path& file_path, int64_t file_offset_in_torrent, int64_t total_size) {
@@ -28,7 +30,7 @@ bool TorrentIOContext::open(TorrentClient * client, const std::filesystem::path&
     current_position_ = 0;
 
 
-    constexpr auto kFileWaitTimeout = std::chrono::seconds(30);
+
     auto wait_start = std::chrono::steady_clock::now();
     while(!std::filesystem::exists(file_path)) {
         if(std::chrono::steady_clock::now() - wait_start > kFileWaitTimeout) {
@@ -40,7 +42,7 @@ bool TorrentIOContext::open(TorrentClient * client, const std::filesystem::path&
         std::ifstream file(file_path, std::ios::binary);
         if(!file.is_open()) return false;
     file_stream_ = std::move(file);
-    constexpr size_t kBufferSize = 256 * 1024;
+
   avio_buffer_ =  static_cast<uint8_t*>(av_malloc(kBufferSize));
   if(!avio_buffer_) {
       return false;
@@ -56,19 +58,30 @@ return true;
 
 }
 
+void TorrentIOContext::set_progress_callback(ProgressCallback cb) {
+    progress_cb_ = cb;
+}
+
+void TorrentIOContext::set_reporting(bool on) {
+    reporting_.store(on, std::memory_order_relaxed);
+}
+
 int TorrentIOContext::read_packet(uint8_t * buf, int buf_size) {
     if(current_position_ >= total_size_) return AVERROR_EOF;
     int64_t remaining = total_size_ - current_position_;
     int to_read = static_cast<int>(std::min<int64_t>(buf_size, remaining));
     int64_t absolute_offset = current_position_ + file_offset_in_torrent_;
-    constexpr int64_t kRepriorityStep = 4 * 1024 * 1024;
-    constexpr uint64_t kPriorityWindowBytes = 4 * 1024 * 1024;
+
     if(last_prioritized_pos_ < 0 || std::abs(current_position_ - last_prioritized_pos_) > kRepriorityStep) {
         client_->prioritize_range(static_cast<uint64_t>(absolute_offset), kPriorityWindowBytes);
         last_prioritized_pos_ = current_position_;
     }
 
-    constexpr uint32_t kTimeoutMs = 30000;
+    if(reporting_.load(std::memory_order_relaxed) && progress_cb_) {
+        float current =  client_->window_progress(static_cast<uint64_t>(absolute_offset), kProbeWindow);
+        if(current > max_reported_progress) max_reported_progress = current;
+        progress_cb_({TorrentStage::OpeningStream,max_reported_progress});
+    }
     if(!client_->wait_for_range(static_cast<uint64_t>(absolute_offset), static_cast<uint64_t>(to_read), kTimeoutMs))     return AVERROR(EIO);
     file_stream_.clear();
     file_stream_.seekg(current_position_);

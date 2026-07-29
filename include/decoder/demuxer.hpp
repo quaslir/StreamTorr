@@ -53,4 +53,5 @@ class Demuxer {
       AVRational audio_time_base() const;
         AVRational video_time_base() const;
       std::optional<DemuxedPacket> read_next_packet();
+      double duration_seconds() const;
 };

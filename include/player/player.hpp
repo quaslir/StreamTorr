@@ -17,8 +17,7 @@ enum class PlayerState
     Buffering
 };
 
-constexpr double kLowWatermark = 1.0;
-constexpr double kHighWatermark = 2.0;
+
 class Player {
     private:
     Pipeline pipeline_;
@@ -37,12 +36,14 @@ class Player {
     double playback_start_pts_{0.0};
 
     std::chrono::steady_clock::time_point pause_started_at_;
+    std::chrono::steady_clock::time_point last_seek_at_{};
     void audio_loop();
     void seek(double seconds);
     void toggle_pause();
+    bool open();
     public:
 
-        bool open(const std::string& path);
+        bool open_local(const std::string& path);
         bool open_torrent(const std::string& magnet, const std::filesystem::path& download_dir);
         void set_progress_callback(ProgressCallback cb);
         void play();

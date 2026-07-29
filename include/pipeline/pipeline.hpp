@@ -7,6 +7,7 @@
 #include "io/torrent_io_context.hpp"
 #include "media/audio_resampler.hpp"
 #include "media/video_resampler.hpp"
+#include <cstdint>
 #include <libavutil/rational.h>
 #include <filesystem>
 #include "torrent/torrent_client.hpp"
@@ -31,12 +32,18 @@ class Pipeline {
 
         bool video_resampler_ready_{false};
         std::atomic<double> latest_video_pts_seconds_{0.0};
+
+        int64_t file_offset_in_torrent_{0};
+        int64_t file_size_{0};
+        bool is_torrent_{false};
         void demux_loop();
         void decode_video_packet(const AVPacket* packet);
         void decode_audio_packet(const AVPacket* packet);
+
+        bool open();
     public:
         Pipeline();
-        bool open(const std::string& filename);
+        bool open_local(const std::string& filename);
         bool open_torrent(const std::string& magnet, const std::filesystem::path& download_dir);
         void set_progress_callback(ProgressCallback cb);
         void start();

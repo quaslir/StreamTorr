@@ -9,46 +9,46 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
-#include <libavutil/pixfmt.h>
 #include <mutex>
 #include <thread>
-
+#include "configuration/config.hpp"
+#include "torrent/types.hpp"
 Pipeline::Pipeline() : video_queue_(80), audio_queue_(160) {}
 
-bool Pipeline::open(const std::string& filename) {
+
+bool Pipeline::open() {
+
+
+    if(demuxer_.has_video()) {
+        auto video_info = demuxer_.video_stream_info();
+        if(!video_info.has_value()) return false;
+
+        bool video_decoder_open = video_decoder_.init(video_info.value());
+
+        if(!video_decoder_open) return false;
+    }
+
+    if(demuxer_.has_audio()) {
+        auto audio_info = demuxer_.audio_stream_info();
+        if(!audio_info.has_value()) return false;
+
+        bool audio_decoder_open = audio_decoder_.init(audio_info.value());
+
+        if(!audio_decoder_open) return false;
+        if(!audio_resampler_.open(audio_decoder_.get_codec_context())) return false;
+    }
+
+
+
+    return true;
+}
+
+bool Pipeline::open_local(const std::string& filename) {
 bool demuxer_open = demuxer_.open(filename);
-
-if(!demuxer_open) return false;
-
-if(demuxer_.has_video()) {
-    auto video_info = demuxer_.video_stream_info();
-    if(!video_info.has_value()) return false;
-
-    bool video_decoder_open = video_decoder_.init(video_info.value());
-
-    if(!video_decoder_open) return false;
+    if(!demuxer_open) return false;
+    return open();
 }
 
-if(demuxer_.has_audio()) {
-    auto audio_info = demuxer_.audio_stream_info();
-    if(!audio_info.has_value()) return false;
-
-    bool audio_decoder_open = audio_decoder_.init(audio_info.value());
-
-    if(!audio_decoder_open) return false;
-    if(!audio_resampler_.open(audio_decoder_.get_codec_context())) return false;
-}
-
-
-
-return true;
-}
-
-
-void Pipeline::set_progress_callback(ProgressCallback cb) {
-    progress_cb_ = cb;
-    torrent_client_.set_progress_callback(progress_cb_);
-}
 bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::path& download_dir) {
 
     if(!torrent_client_.add_source(magnet, download_dir)) return false;
@@ -70,54 +70,46 @@ bool Pipeline::open_torrent(const std::string& magnet, const std::filesystem::pa
     if(!file_info.has_value()) {
         return false;
     }
-    constexpr uint64_t kInitialWindowBytes = 4 * 1024 * 1024;
+    file_offset_in_torrent_ = file_info->offset_in_torrent;
+    file_size_ = file_info->size;
+    is_torrent_ = true;
     torrent_client_.prioritize_range(static_cast<uint64_t>(file_info->offset_in_torrent), kInitialWindowBytes);
 
-    constexpr uint64_t kTailWindowBytes = 4 * 1024 * 1024;
+
     uint64_t tail_start = static_cast<uint64_t>(file_info->offset_in_torrent + file_info->size) - std::min(kTailWindowBytes, static_cast<uint64_t>(file_info->size));
     torrent_client_.prioritize_range(tail_start, kTailWindowBytes);
 
     int head_waited = 0;
-    while(torrent_client_.window_progress(static_cast<uint64_t>((file_info->offset_in_torrent)), kInitialWindowBytes) < 1.0f){
+    float head_progress = 0.0f;
+    while((head_progress = torrent_client_.window_progress(static_cast<uint64_t>((file_info->offset_in_torrent)), kInitialWindowBytes)) < 1.0f){
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             if(progress_cb_) {
-                progress_cb_({TorrentStage::DownloadingHeadTail, torrent_client_.window_progress(static_cast<uint64_t>((file_info->offset_in_torrent)), kInitialWindowBytes)});
+                progress_cb_({TorrentStage::DownloadingHeadTail,head_progress});
 
             }
             if(++head_waited > 200) break;
     }
-    if(progress_cb_) progress_cb_({TorrentStage::Ready, 1.0f});
+    if(progress_cb_) progress_cb_({TorrentStage::DownloadingHeadTail,head_progress});
+    if(progress_cb_) progress_cb_({TorrentStage::OpeningStream, 0.0f});
 
     if(!io_context_.open(&torrent_client_, file_info->path, file_info->offset_in_torrent, file_info->size)) return false;
 
 
     if(!demuxer_.open_with_io_context(io_context_.avio_context())) return false;
 
+    io_context_.set_reporting(false);
 
-    if(demuxer_.has_video()) {
-        auto video_info = demuxer_.video_stream_info();
-        if(!video_info.has_value()) return false;
-
-        bool video_decoder_open = video_decoder_.init(video_info.value());
-
-        if(!video_decoder_open) return false;
-
-
-    }
-
-    if(demuxer_.has_audio()) {
-        auto audio_info = demuxer_.audio_stream_info();
-        if(!audio_info.has_value()) return false;
-
-        bool audio_decoder_open = audio_decoder_.init(audio_info.value());
-
-        if(!audio_decoder_open) return false;
-        if(!audio_resampler_.open(audio_decoder_.get_codec_context())) return false;
-    }
-
+if(!open()) return false;
+    if(progress_cb_) progress_cb_({TorrentStage::Ready, 1.0f});
     return true;
 
 }
+void Pipeline::set_progress_callback(ProgressCallback cb) {
+    progress_cb_ = cb;
+    torrent_client_.set_progress_callback(progress_cb_);
+    io_context_.set_progress_callback(progress_cb_);
+}
+
 
 
 void Pipeline::start() {
@@ -132,13 +124,24 @@ void Pipeline::stop() {
 }
 
 bool Pipeline::seek(double seconds) {
+    torrent_client_.set_abort_wait(true);
+    if(is_torrent_) {
+        double duration = demuxer_.duration_seconds();
+        if(duration > 0.0) {
+            double ratio = std::clamp(seconds / duration, 0.0, 1.0);
+            uint64_t target = static_cast<uint64_t>(file_offset_in_torrent_) + static_cast<uint64_t>(ratio * static_cast<double>(file_size_));
+            torrent_client_.prioritize_range(target, kPriorityWindowBytes);
+        }
+    }
     video_queue_.clear();
     audio_queue_.clear();
 
     std::lock_guard<std::mutex> lock(pipeline_mutex_);
+    torrent_client_.set_abort_wait(false);
     if(!demuxer_.seek(seconds)) return false;
     video_decoder_.flush();
     audio_decoder_.flush();
+    latest_video_pts_seconds_.store(seconds, std::memory_order_relaxed);
     video_queue_.clear();
     audio_queue_.clear();
     return true;

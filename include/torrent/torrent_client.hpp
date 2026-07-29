@@ -10,33 +10,8 @@
 #include <optional>
 #include <thread>
 #include <mutex>
+#include "types.hpp"
 
-enum class TorrentStage {
-    FetchingMetadata,
-    DownloadingHeadTail,
-    Ready
-};
-
-struct TorrentProgress {
-    TorrentStage stage;
-    float percent;
-};
-
-using ProgressCallback = std::function<void(TorrentProgress)>;
-
-
-struct VideoFileInfo {
-    std::filesystem::path path;
-    int64_t offset_in_torrent;
-    int64_t size;
-};
-
-struct ActiveWindow {
-    mutable std::mutex mutex_;
-    uint64_t offset_;
-    uint64_t length_;
-    bool set_{false};
-};
 
 class TorrentClient {
     private:
@@ -48,9 +23,11 @@ class TorrentClient {
          std::thread alert_thread_;
 
          std::atomic<bool> running_{false};
+         std::atomic<bool> abort_wait_{false};
          ProgressCallback progress_cb_;
          mutable std::mutex mutex_;
          mutable std::mutex progress_cb_mutex_;
+
          mutable std::condition_variable piece_downloaded_cv_;
          ActiveWindow active_window_;
          bool source_added_{false};
@@ -63,6 +40,7 @@ class TorrentClient {
         bool add_source(const std::string& magnet, const std::filesystem::path& download_dir);
                 float window_progress(uint64_t offset, uint64_t length) const;
         void set_progress_callback(ProgressCallback cb);
+        void set_abort_wait(bool status);
         lt::torrent_status status() const;
         bool has_metadata() const;
         std::optional<VideoFileInfo> video_file_info()const;

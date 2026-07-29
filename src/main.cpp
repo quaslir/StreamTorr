@@ -15,14 +15,16 @@ int main(int argc, char * argv[]) {
 
     Player player;
     player.set_progress_callback([](TorrentProgress p) {
-const char * stage_name =  p.stage == TorrentStage::FetchingMetadata ? "metadata" :
-       p.stage == TorrentStage::DownloadingHeadTail ? "buffering" : "ready";
+        const char* stage_name =
+            p.stage == TorrentStage::FetchingMetadata     ? "metadata"  :
+            p.stage == TorrentStage::DownloadingHeadTail  ? "buffering" :
+            p.stage == TorrentStage::OpeningStream        ? "opening"   : "ready";
    std::fprintf(stderr, "[LOADING] %s %.1f%%\n", stage_name, static_cast<double>(p.percent * 100.0f));
     });
 
     if (!player.open_torrent(path_or_url, kDownloadDir)) {
         std::fprintf(stderr, "[MAIN] open_torrent FAILED\n");
-        if(!player.open(path_or_url)) {
+        if(!player.open_local(path_or_url)) {
         SDL_Quit();
         return 1;
         }
