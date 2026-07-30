@@ -19,3 +19,5 @@ constexpr int kProgressBarHeight = 6;
 constexpr int kProgressBarY = 10;
 constexpr int kPlayButtonSize = 20;
 constexpr int kPlayButtonMargin = 20;
+constexpr int kVolumeBarWidth = 80;
+constexpr int kVolumeBarHeight = 6;

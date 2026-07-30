@@ -28,7 +28,7 @@ class Player {
 
     std::chrono::steady_clock::time_point pause_started_at_;
     std::chrono::steady_clock::time_point last_seek_at_{};
-
+    std::atomic<float> volume_{1.0f};
     UIOverlay ui_overlay_;
     void audio_loop();
     void seek(double seconds);

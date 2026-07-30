@@ -2,6 +2,7 @@
 #include "configuration/config.hpp"
 #include "fmt/format.h"
 #include <SDL_ttf.h>
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <fmt/core.h>
@@ -57,7 +58,7 @@ void UIOverlay::draw(SDL_Renderer *renderer, int window_w, int window_h, double 
     SDL_DestroyTexture(font_texture);
 
 
-    int btn_y = (rect.y + (kPanelHeight - kPlayButtonSize) / 2) + 5;
+    int btn_y = (rect.y + (kPanelHeight - kPlayButtonSize) / 2) + 7;
     play_button_bounds_ = SDL_Rect{kPlayButtonMargin, btn_y, kPlayButtonSize, kPlayButtonSize};
 
 
@@ -80,9 +81,21 @@ void UIOverlay::draw(SDL_Renderer *renderer, int window_w, int window_h, double 
         };
         SDL_RenderGeometry(renderer, nullptr, verts, 3, nullptr, 0);
     }
+
+    int vol_x = font_x - kVolumeBarWidth - kProgressBarMargin;
+    int vol_y = font_y + (text_h - kVolumeBarHeight) / 2;
+
+    SDL_Rect volume_rect{vol_x, vol_y, kVolumeBarWidth, kVolumeBarHeight};
+    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+    SDL_RenderFillRect(renderer, &volume_rect);
+
+    int filled_w = static_cast<int>(static_cast<float>(kVolumeBarWidth) * std::clamp(volume, 0.0f, 1.0f));
+
+    volume_bar_bounds_ =  SDL_Rect{vol_x, vol_y, filled_w, kVolumeBarHeight};
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, &volume_bar_bounds_);
     (void)download_progress;
-    (void)is_playing;
-    (void)volume;
+
 }
 
  std::string UIOverlay::time_to_string(double seconds) {

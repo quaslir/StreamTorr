@@ -17,6 +17,7 @@ class UIOverlay {
     TTF_Font *font_{nullptr};
     SDL_Rect progress_bar_bounds_{};
     SDL_Rect play_button_bounds_{};
+    SDL_Rect volume_bar_bounds_{};
     bool visible_{true};
 
     static std::string time_to_string(double seconds);

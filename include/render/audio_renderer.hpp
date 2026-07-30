@@ -15,7 +15,7 @@ class AudioRenderer {
     AudioRenderer &operator=(AudioRenderer &&) noexcept = default;
 
     bool open(int sample_rate, uint8_t channels, SDL_AudioFormat format);
-    bool render_frame(const uint8_t *data, uint32_t size);
+    bool render_frame(const uint8_t *data, uint32_t size, float volume);
 
     uint32_t queued_size() const;
     void close();

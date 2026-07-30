@@ -1,4 +1,5 @@
 #include "render/audio_renderer.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -15,9 +16,11 @@ bool AudioRenderer::open(int sample_rate, uint8_t channels, SDL_AudioFormat form
     return true;
 }
 
-bool AudioRenderer::render_frame(const uint8_t *data, uint32_t size) {
-
-    int res = SDL_QueueAudio(device_, data, size);
+bool AudioRenderer::render_frame(const uint8_t *data, uint32_t size, float volume) {
+    int sdl_volume = static_cast<int>(std::clamp(volume, 0.0f, 1.0f)) * SDL_MIX_MAXVOLUME;
+    std::vector<uint8_t> mixed(size, 0);
+    SDL_MixAudioFormat(mixed.data(), data, AUDIO_S16SYS, size, sdl_volume);
+    int res = SDL_QueueAudio(device_, mixed.data(), size);
     return res == 0;
 }
 

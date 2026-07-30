@@ -1,5 +1,6 @@
 #include "player/player.hpp"
 #include "configuration/config.hpp"
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <ctime>
@@ -63,7 +64,7 @@ void Player::audio_loop() {
         double frame_end_pts = pts_seconds + frame_duration;
         int data_size = raw->nb_samples * raw->ch_layout.nb_channels *
                         av_get_bytes_per_sample(static_cast<AVSampleFormat>(raw->format));
-        audio_renderer_.render_frame(raw->data[0], static_cast<uint32_t>(data_size));
+        audio_renderer_.render_frame(raw->data[0], static_cast<uint32_t>(data_size), volume_.load(std::memory_order_relaxed));
         uint32_t queued_bytes = audio_renderer_.queued_size();
 
         uint32_t bytes_per_second = static_cast<uint32_t>(raw->sample_rate) *
@@ -111,8 +112,10 @@ void Player::update() {
         return;
     RenderEvent event = video_renderer_.poll_events();
     if (event == RenderEvent::WINDOW_CLOSED) {
+        std::cerr << "Window was closed" << std::endl;
         stop();
         state_ = PlayerState::Finished;
+        std::cerr << "Exitting ..." << std::endl;
         return;
     }
 
@@ -203,7 +206,8 @@ void Player::update() {
 }
 
 void Player::stop() {
-    audio_renderer_.pause(true);
+
+    audio_renderer_.pause(false);
     pipeline_.stop();
     if (audio_thread_.joinable())
         audio_thread_.join();
