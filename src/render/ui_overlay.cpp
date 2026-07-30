@@ -8,8 +8,7 @@
 bool UIOverlay::open() {
     const std::string font_path = std::string{ASSETS_DIR} + "/fonts/Inter-Regular.ttf";
     font_ = TTF_OpenFont(font_path.c_str(), FONT_SIZE);
-    if (!font_)
-        return false;
+    if (!font_)        return false;
     return true;
 }
 
@@ -56,6 +55,31 @@ void UIOverlay::draw(SDL_Renderer *renderer, int window_w, int window_h, double 
     SDL_Rect font_rect{font_x, font_y, text_w, text_h};
     SDL_RenderCopy(renderer, font_texture, nullptr, &font_rect);
     SDL_DestroyTexture(font_texture);
+
+
+    int btn_y = (rect.y + (kPanelHeight - kPlayButtonSize) / 2) + 5;
+    play_button_bounds_ = SDL_Rect{kPlayButtonMargin, btn_y, kPlayButtonSize, kPlayButtonSize};
+
+
+
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+
+    if(is_playing) {
+         int btn_bar_w = kPlayButtonSize / 3;
+        SDL_Rect pause_bar_1{kPlayButtonMargin, btn_y, btn_bar_w, kPlayButtonSize};
+        SDL_Rect pause_bar_2{kPlayButtonMargin + kPlayButtonSize - btn_bar_w, btn_y, btn_bar_w, kPlayButtonSize};
+        SDL_RenderFillRect(renderer, &pause_bar_1);
+        SDL_RenderFillRect(renderer, &pause_bar_2);
+    } else {
+        SDL_Vertex verts[3] = {
+    {{static_cast<float>(kPlayButtonMargin), static_cast<float>(btn_y)}, {255,255,255,255}, {0, 0}},
+    {{static_cast<float>(kPlayButtonMargin), static_cast<float>(btn_y + kPlayButtonSize)}, {255,255,255,255}, {0, 0}},
+    {{static_cast<float>(kPlayButtonMargin + kPlayButtonSize), static_cast<float>(btn_y + (static_cast<float>(kPlayButtonSize) / 2))}, {255,255,255,255}, {0, 0}}
+        };
+        SDL_RenderGeometry(renderer, nullptr, verts, 3, nullptr, 0);
+    }
     (void)download_progress;
     (void)is_playing;
     (void)volume;

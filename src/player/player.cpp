@@ -124,9 +124,8 @@ void Player::update() {
         seek(pipeline_.clock().get_time() + 10);
     }
 
-    if (state_ == PlayerState::Paused) {
-        return;
-    } else if (!((std::chrono::steady_clock::now() - last_seek_at_) < kSeekGracePeriod) &&
+
+     if (!((std::chrono::steady_clock::now() - last_seek_at_) < kSeekGracePeriod) &&
                (state_ == PlayerState::Playing && clock_primed && player_torrent_ &&
                 pipeline_.buffered_seconds() < kLowWatermark)) {
         std::cerr << "Entering buffered state..." << std::endl;
@@ -147,17 +146,19 @@ void Player::update() {
         std::cerr << "Exitting buffering state..." << std::endl;
     }
 
-    if (!pending_frame_) {
-        if (pipeline_.video_frames().empty())
-            return;
+    bool need_new_frame = (state_ == PlayerState::Playing);
+
+    if(need_new_frame && !pending_frame_) {
+        if (!pipeline_.video_frames().empty()) {
         pending_frame_ = pipeline_.video_frames().pop();
         if (!pending_frame_) {
             stop();
             state_ = PlayerState::Finished;
             return;
         }
+        }
     }
-
+    if(pending_frame_) {
     double frame_pts = static_cast<double>(pending_frame_->get()->pts) * av_q2d(video_time_base_);
 
     if (!clock_primed) {
@@ -179,25 +180,30 @@ void Player::update() {
         clock_time = estimated_clock;
     }
 
-    if (frame_pts > clock_time) {
-        return;
+    bool should_render_frame = (frame_pts <= clock_time);
+    if(should_render_frame) {
+        if (!video_renderer_.update_texture(pending_frame_->get())) {
+            stop();
+            state_ = PlayerState::Finished;
+            return;
+        }
+            pending_frame_.reset();
     }
 
-    if (!video_renderer_.update_texture(pending_frame_->get())) {
-        stop();
-        state_ = PlayerState::Finished;
-        return;
+
     }
+    video_renderer_.draw_frame();
     auto window_size = video_renderer_.window_size();
     ui_overlay_.draw(video_renderer_.renderer(), window_size.first, window_size.second, pipeline_.clock().get_time(), pipeline_.duration_seconds(),
                      pipeline_.overall_progress(), state_ == PlayerState::Playing, 1.0f);
 
     video_renderer_.present();
 
-    pending_frame_.reset();
+
 }
 
 void Player::stop() {
+    audio_renderer_.pause(true);
     pipeline_.stop();
     if (audio_thread_.joinable())
         audio_thread_.join();

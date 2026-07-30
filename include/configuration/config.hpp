@@ -17,3 +17,5 @@ constexpr auto kPanelHeight = 60;
 constexpr int kProgressBarMargin = 20;
 constexpr int kProgressBarHeight = 6;
 constexpr int kProgressBarY = 10;
+constexpr int kPlayButtonSize = 20;
+constexpr int kPlayButtonMargin = 20;

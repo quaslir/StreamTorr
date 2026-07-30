@@ -47,6 +47,7 @@ RenderEvent VideoRenderer::poll_events() {
 }
 
 void VideoRenderer::close() {
+    texture_is_valid_ = false;
     texture_.reset();
     renderer_.reset();
     window_.reset();
@@ -60,13 +61,16 @@ bool VideoRenderer::update_texture(const AVFrame *frame) {
         frame->linesize[1], frame->data[2], frame->linesize[2]);
     if (result_update_texture < 0)
         return false;
-    int result_render_clear = SDL_RenderClear(renderer_.get());
-    if (result_render_clear < 0)
-        return false;
-    int result_render_copy = SDL_RenderCopy(renderer_.get(), texture_.get(), nullptr, nullptr);
-    if (result_render_copy < 0)
-        return false;
+    texture_is_valid_ = true;
     return true;
+}
+
+void VideoRenderer::draw_frame() {
+    SDL_SetRenderDrawColor(renderer_.get(), 0, 0, 0, 255);
+    SDL_RenderClear(renderer_.get());
+    if(texture_is_valid_) {
+        SDL_RenderCopy(renderer_.get(), texture_.get(), nullptr, nullptr);
+    }
 }
 void VideoRenderer::present() { SDL_RenderPresent(renderer_.get()); }
 SDL_Renderer *VideoRenderer::renderer() const { return renderer_.get(); }

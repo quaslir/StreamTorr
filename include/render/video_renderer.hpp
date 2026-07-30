@@ -15,6 +15,7 @@ class VideoRenderer {
     int texture_width_{0};
     int texture_height_{0};
 
+    bool texture_is_valid_{false};
   public:
     VideoRenderer() = default;
     VideoRenderer(const VideoRenderer &) = delete;
@@ -25,6 +26,7 @@ class VideoRenderer {
 
     bool open(int width, int height, const char *window_title = "StreamTorr");
     bool update_texture(const AVFrame *frame);
+    void draw_frame();
     void present();
     RenderEvent poll_events();
     SDL_Renderer *renderer() const;
