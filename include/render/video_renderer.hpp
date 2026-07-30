@@ -4,34 +4,30 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
-enum RenderEvent {
-    NONE,
-    WINDOW_CLOSED,
-    PAUSE,
-    SEEK_FORWARD,
-    SEEK_BACKWARD
-};
+enum RenderEvent { NONE, WINDOW_CLOSED, PAUSE, SEEK_FORWARD, SEEK_BACKWARD };
 
 class VideoRenderer {
-    private:
-        smart_window window_{nullptr};
-        smart_texture texture_{nullptr};
-        smart_renderer renderer_{nullptr};
+  private:
+    smart_window window_{nullptr};
+    smart_texture texture_{nullptr};
+    smart_renderer renderer_{nullptr};
 
-        int texture_width_{0};
-        int texture_height_{0};
+    int texture_width_{0};
+    int texture_height_{0};
 
-    public:
-        VideoRenderer() = default;
-        VideoRenderer(const VideoRenderer&) = delete;
-        VideoRenderer& operator=(const VideoRenderer&) = delete;
+  public:
+    VideoRenderer() = default;
+    VideoRenderer(const VideoRenderer &) = delete;
+    VideoRenderer &operator=(const VideoRenderer &) = delete;
 
-        VideoRenderer(VideoRenderer&&) noexcept = default;
-        VideoRenderer& operator=(VideoRenderer&&) noexcept = default;
+    VideoRenderer(VideoRenderer &&) noexcept = default;
+    VideoRenderer &operator=(VideoRenderer &&) noexcept = default;
 
-        bool open(int width, int height,   const char* window_title = "StreamTorr");
-        bool render_frame(const AVFrame* frame);
-         RenderEvent poll_events();
-
-        void close();
+    bool open(int width, int height, const char *window_title = "StreamTorr");
+    bool update_texture(const AVFrame *frame);
+    void present();
+    RenderEvent poll_events();
+    SDL_Renderer *renderer() const;
+    std::pair<int, int> window_size() const;
+    void close();
 };

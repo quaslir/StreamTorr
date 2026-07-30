@@ -2,15 +2,28 @@ cmake_minimum_required(VERSION 3.20)
 
 project(stream-torr LANGUAGES CXX)
 
+find_program(CLANG_FORMAT_EXE NAMES clang-format)
+if(CLANG_FORMAT_EXE)
+    file(GLOB_RECURSE ALL_SOURCE_FILES
+        ${CMAKE_SOURCE_DIR}/src/*.cpp
+        ${CMAKE_SOURCE_DIR}/include/*.hpp
+    )
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT_EXE} -i -style=file ${ALL_SOURCE_FILES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Formatting all source files with clang-format"
+    )
+else()
+    message(STATUS "clang-format not found, 'format' target unavailable")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 enable_testing()
 
-# ==============================================================================
-# 1. COMPILER WARNINGS & SANITIZERS INTERFACE
-# ==============================================================================
+
 add_library(project_warnings INTERFACE)
 
 # GCC warns when a system include directory (e.g. /usr/local/include) is
@@ -47,9 +60,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(project_warnings INTERFACE /W4 /WX)
 endif()
 
-# ==============================================================================
-# 2. EXTERNAL DEPENDENCIES (Boost, Libtorrent, SDL2)
-# ==============================================================================
+
 include(FetchContent)
 include(ProcessorCount)
 ProcessorCount(STREAMTORR_NPROC)
@@ -143,7 +154,38 @@ if(PkgConfig_FOUND)
     )
 endif()
 
-# Create a unified interface target for the rest of the project
+message(STATUS "Configuring SDL_ttf...")
+set(SDL2TTF_VENDORED ON CACHE BOOL "" FORCE)
+set(SDL2TTF_HARFBUZZ OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+    SDL2_ttf
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf.git
+    GIT_TAG        release-2.22.0
+    GIT_SHALLOW    TRUE
+)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+FetchContent_MakeAvailable(SDL2_ttf)
+unset(CMAKE_POLICY_VERSION_MINIMUM)
+
+if(TARGET SDL2_ttf)
+    get_target_property(_sdl2ttf_includes SDL2_ttf INTERFACE_INCLUDE_DIRECTORIES)
+    if(_sdl2ttf_includes)
+        set_target_properties(SDL2_ttf PROPERTIES
+            INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_sdl2ttf_includes}"
+        )
+    endif()
+endif()
+
+
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG        11.0.2
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(fmt)
+
 add_library(ffmpeg_interface INTERFACE)
 
 if(FFMPEG_FOUND)
@@ -217,9 +259,31 @@ else()
     endif()
 endif()
 
-# ==============================================================================
-# 4. SUBDIRECTORIES
-# ==============================================================================
+
+set(FONT_DIR ${CMAKE_SOURCE_DIR}/assets/fonts)
+set(FONT_PATH ${FONT_DIR}/Inter-Regular.ttf)
+set(FONT_URL "https://github.com/google/fonts/raw/main/ofl/robotomono/RobotoMono%5Bwght%5D.ttf")
+
+if(NOT EXISTS ${FONT_PATH})
+    file(MAKE_DIRECTORY ${FONT_DIR})
+    message(STATUS "Downloading UI font...")
+    file(DOWNLOAD ${FONT_URL} ${FONT_PATH}
+        SHOW_PROGRESS
+        STATUS DOWNLOAD_STATUS
+    )
+    list(GET DOWNLOAD_STATUS 0 STATUS_CODE)
+    if(NOT STATUS_CODE EQUAL 0)
+        file(REMOVE ${FONT_PATH})
+        message(FATAL_ERROR "Failed to download font: ${DOWNLOAD_STATUS}")
+    endif()
+    file(SIZE ${FONT_PATH} FONT_SIZE)
+    if(FONT_SIZE LESS 1000)
+        file(REMOVE ${FONT_PATH})
+        message(FATAL_ERROR "Downloaded font file looks corrupt (size=${FONT_SIZE})")
+    endif()
+endif()
+
+
 enable_testing()
 
 add_subdirectory(src)

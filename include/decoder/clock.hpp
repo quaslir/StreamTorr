@@ -1,11 +1,11 @@
 
 #include <atomic>
 class Clock {
-    private:
+  private:
     std::atomic<double> time;
-    public:
+
+  public:
     void update(double pts_seconds);
 
     double get_time() const;
-
 };

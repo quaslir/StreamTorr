@@ -1,13 +1,8 @@
 #pragma once
-#include <functional>
 #include <filesystem>
+#include <functional>
 #include <mutex>
-enum class TorrentStage {
-    FetchingMetadata,
-    DownloadingHeadTail,
-    OpeningStream,
-    Ready
-};
+enum class TorrentStage { FetchingMetadata, DownloadingHeadTail, OpeningStream, Ready };
 
 struct TorrentProgress {
     TorrentStage stage;
@@ -15,7 +10,6 @@ struct TorrentProgress {
 };
 
 using ProgressCallback = std::function<void(TorrentProgress)>;
-
 
 struct VideoFileInfo {
     std::filesystem::path path;
