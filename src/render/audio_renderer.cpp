@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <iostream>
+#include <vector>
 bool AudioRenderer::open(int sample_rate, uint8_t channels, SDL_AudioFormat format) {
     SDL_AudioSpec desired{};
     desired.freq = sample_rate;

@@ -81,7 +81,7 @@ void UIOverlay::draw(SDL_Renderer *renderer, int window_w, int window_h, double 
         SDL_Vertex verts[3] = {
     {{static_cast<float>(kPlayButtonMargin), static_cast<float>(btn_y)}, {255,255,255,255}, {0, 0}},
     {{static_cast<float>(kPlayButtonMargin), static_cast<float>(btn_y + kPlayButtonSize)}, {255,255,255,255}, {0, 0}},
-    {{static_cast<float>(kPlayButtonMargin + kPlayButtonSize), static_cast<float>(btn_y + (static_cast<float>(kPlayButtonSize) / 2))}, {255,255,255,255}, {0, 0}}
+    {{static_cast<float>(kPlayButtonMargin + kPlayButtonSize), static_cast<float>(btn_y) + (static_cast<float>(kPlayButtonSize) / 2)}, {255,255,255,255}, {0, 0}}
         };
         SDL_RenderGeometry(renderer, nullptr, verts, 3, nullptr, 0);
     }
