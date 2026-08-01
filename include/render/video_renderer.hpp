@@ -16,6 +16,7 @@ class VideoRenderer {
     int texture_height_{0};
 
     bool texture_is_valid_{false};
+
   public:
     VideoRenderer() = default;
     VideoRenderer(const VideoRenderer &) = delete;
@@ -30,5 +31,6 @@ class VideoRenderer {
     void present();
     SDL_Renderer *renderer() const;
     std::pair<int, int> window_size() const;
+    void toggle_fullscreen(bool fullscreen_on = true);
     void close();
 };

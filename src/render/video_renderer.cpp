@@ -53,6 +53,9 @@ void VideoRenderer::draw_frame() {
         SDL_RenderCopy(renderer_.get(), texture_.get(), nullptr, nullptr);
     }
 }
+ void VideoRenderer::toggle_fullscreen(bool fullscreen_on) {
+     SDL_SetWindowFullscreen(window_.get(), fullscreen_on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+ }
 void VideoRenderer::present() { SDL_RenderPresent(renderer_.get()); }
 SDL_Renderer *VideoRenderer::renderer() const { return renderer_.get(); }
 std::pair<int, int> VideoRenderer::window_size() const {

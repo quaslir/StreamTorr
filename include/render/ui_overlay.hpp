@@ -12,7 +12,7 @@ struct HitResult {
     bool volume_changed{false};
     float new_volume{0.0f};
 };
-enum RenderEvent { NONE, WINDOW_CLOSED, PAUSE, SEEK_FORWARD, SEEK_BACKWARD };
+enum RenderEvent { NONE, WINDOW_CLOSED, PAUSE, SEEK_FORWARD, SEEK_BACKWARD, DISABLE_FULLSCREEN, ENABLE_FULLSCREEN };
 
 struct FrameInput {
     RenderEvent event{RenderEvent::NONE};

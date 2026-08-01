@@ -125,6 +125,11 @@ void Player::update() {
         seek(pipeline_.clock().get_time() - 10);
     } else if (input.event == RenderEvent::SEEK_FORWARD) {
         seek(pipeline_.clock().get_time() + 10);
+    } else if(input.event == RenderEvent::DISABLE_FULLSCREEN) {
+        video_renderer_.toggle_fullscreen(false);
+    }
+    else if(input.event == RenderEvent::ENABLE_FULLSCREEN) {
+        video_renderer_.toggle_fullscreen();
     }
 
     else if(input.mouse_clicked) {

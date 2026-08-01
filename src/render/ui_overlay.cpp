@@ -159,6 +159,12 @@ FrameInput UIOverlay::poll_events() {
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RIGHT) {
             input.event = RenderEvent::SEEK_FORWARD;
         }
+        else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+            input.event = RenderEvent::DISABLE_FULLSCREEN;
+        }
+        else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_f) {
+            input.event = RenderEvent::ENABLE_FULLSCREEN;
+        }
 
 
     }
