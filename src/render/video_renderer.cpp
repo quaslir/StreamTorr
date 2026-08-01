@@ -26,25 +26,6 @@ bool VideoRenderer::open(int width, int height, const char *window_title) {
     return true;
 }
 
-RenderEvent VideoRenderer::poll_events() {
-    SDL_Event event;
-    RenderEvent result = RenderEvent::NONE;
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT) {
-            result = RenderEvent::WINDOW_CLOSED;
-        } else if ((event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE) ||
-                   (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT))
-            result = RenderEvent::PAUSE;
-
-        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_LEFT) {
-            result = RenderEvent::SEEK_BACKWARD;
-        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RIGHT) {
-            result = RenderEvent::SEEK_FORWARD;
-        }
-    }
-
-    return result;
-}
 
 void VideoRenderer::close() {
     texture_is_valid_ = false;

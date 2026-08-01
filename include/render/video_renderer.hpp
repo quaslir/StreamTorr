@@ -4,7 +4,7 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
-enum RenderEvent { NONE, WINDOW_CLOSED, PAUSE, SEEK_FORWARD, SEEK_BACKWARD };
+
 
 class VideoRenderer {
   private:
@@ -28,7 +28,6 @@ class VideoRenderer {
     bool update_texture(const AVFrame *frame);
     void draw_frame();
     void present();
-    RenderEvent poll_events();
     SDL_Renderer *renderer() const;
     std::pair<int, int> window_size() const;
     void close();

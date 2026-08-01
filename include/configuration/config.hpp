@@ -21,3 +21,5 @@ constexpr int kPlayButtonSize = 20;
 constexpr int kPlayButtonMargin = 20;
 constexpr int kVolumeBarWidth = 80;
 constexpr int kVolumeBarHeight = 6;
+constexpr auto kTimeoutMouse =  std::chrono::seconds(3);
+constexpr int kHitPadding = 10;

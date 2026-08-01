@@ -110,8 +110,8 @@ void Player::update() {
     if (state_ != PlayerState::Playing && state_ != PlayerState::Paused &&
         state_ != PlayerState::Buffering)
         return;
-    RenderEvent event = video_renderer_.poll_events();
-    if (event == RenderEvent::WINDOW_CLOSED) {
+    FrameInput input  = ui_overlay_.poll_events();
+    if (input.event == RenderEvent::WINDOW_CLOSED) {
         std::cerr << "Window was closed" << std::endl;
         stop();
         state_ = PlayerState::Finished;
@@ -119,12 +119,20 @@ void Player::update() {
         return;
     }
 
-    else if (event == RenderEvent::PAUSE) {
+    else if (input.event == RenderEvent::PAUSE) {
         toggle_pause();
-    } else if (event == RenderEvent::SEEK_BACKWARD) {
+    } else if (input.event == RenderEvent::SEEK_BACKWARD) {
         seek(pipeline_.clock().get_time() - 10);
-    } else if (event == RenderEvent::SEEK_FORWARD) {
+    } else if (input.event == RenderEvent::SEEK_FORWARD) {
         seek(pipeline_.clock().get_time() + 10);
+    }
+
+    else if(input.mouse_clicked) {
+        HitResult hit = ui_overlay_.handle_click(input.mouse_x, input.mouse_y, pipeline_.duration_seconds());
+        if(hit.play_pause_clicked) toggle_pause();
+        else if(hit.seek_requested) seek(hit.seek_to_seconds);
+        else if(hit.volume_changed) volume_.store(hit.new_volume, std::memory_order_relaxed);
+        else toggle_pause();
     }
 
 
@@ -198,7 +206,7 @@ void Player::update() {
     video_renderer_.draw_frame();
     auto window_size = video_renderer_.window_size();
     ui_overlay_.draw(video_renderer_.renderer(), window_size.first, window_size.second, pipeline_.clock().get_time(), pipeline_.duration_seconds(),
-                     pipeline_.overall_progress(), state_ == PlayerState::Playing, 1.0f);
+                     pipeline_.overall_progress(), state_ == PlayerState::Playing, volume_.load(std::memory_order_relaxed));
 
     video_renderer_.present();
 
