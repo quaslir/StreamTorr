@@ -26,7 +26,17 @@ bool VideoRenderer::open(int width, int height, const char *window_title) {
     return true;
 }
 
+bool VideoRenderer::resize_texture(int width, int height) {
+if(width == texture_width_ && height==texture_height_) return true;
 
+SDL_Texture * texture = SDL_CreateTexture(renderer_.get(), SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, width, height);
+if(!texture) return false;
+texture_.reset(texture);
+texture_width_ = width;
+texture_height_ = height;
+texture_is_valid_ = false;
+return true;
+}
 void VideoRenderer::close() {
     texture_is_valid_ = false;
     texture_.reset();
@@ -37,6 +47,10 @@ void VideoRenderer::close() {
 bool VideoRenderer::update_texture(const AVFrame *frame) {
     if (!frame || !texture_)
         return false;
+    if(frame->width != texture_width_ || frame->height != texture_height_) {
+        if(!resize_texture(frame->width, frame->height)) return false;
+    }
+    if(!texture_) return false;
     int result_update_texture = SDL_UpdateYUVTexture(
         texture_.get(), nullptr, frame->data[0], frame->linesize[0], frame->data[1],
         frame->linesize[1], frame->data[2], frame->linesize[2]);

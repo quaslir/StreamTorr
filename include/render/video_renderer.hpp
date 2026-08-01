@@ -27,6 +27,7 @@ class VideoRenderer {
 
     bool open(int width, int height, const char *window_title = "StreamTorr");
     bool update_texture(const AVFrame *frame);
+    bool resize_texture(int width, int height);
     void draw_frame();
     void present();
     SDL_Renderer *renderer() const;
