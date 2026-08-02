@@ -33,7 +33,16 @@ struct AVPacketDeleter {
     }
 };
 
+struct AVSubtitleDeleter {
+    void operator()(AVSubtitle * subtitle) const {
+        if(subtitle) {
+            avsubtitle_free(subtitle);
+        }
+    }
+};
+
 using smart_codec_context = std::unique_ptr<AVCodecContext, AVCodecContextDeleter>;
 using smart_frame = std::unique_ptr<AVFrame, AVFrameDeleter>;
 using smart_format_context = std::unique_ptr<AVFormatContext, AVFormatContextDeleter>;
 using smart_packet = std::unique_ptr<AVPacket, AVPacketDeleter>;
+using smart_subtitle = std::unique_ptr<AVSubtitle, AVSubtitleDeleter>;

@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdint>
+#include <cstddef>
 constexpr double kLowWatermark = 1.0;
 constexpr double kHighWatermark = 2.0;
 constexpr uint64_t kInitialWindowBytes = 4 * 1024 * 1024;
@@ -26,3 +27,5 @@ constexpr int kHitPadding = 10;
 constexpr int kFullscreenIconSize = 16;
 constexpr int kFullscreenIconMargin = 20;
 constexpr int kThickness = 2;
+constexpr size_t video_queue_size = 300;
+constexpr size_t audio_queue_size = 600;

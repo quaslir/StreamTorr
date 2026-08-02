@@ -11,9 +11,53 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <libavcodec/avcodec.h>
+#include <libavutil/rational.h>
 #include <mutex>
+#include <optional>
 #include <thread>
-Pipeline::Pipeline() : video_queue_(300), audio_queue_(600) {}
+namespace {
+std::string strip_ass_tags(const char* ass_line) {
+    if (!ass_line) return {};
+    std::string input(ass_line);
+
+    // ASS-строка имеет формат: "Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text"
+    // нам нужно только поле Text — это всё после 9-й запятой
+    int commas_seen = 0;
+    size_t text_start = 0;
+    for (size_t i = 0; i < input.size(); i++) {
+        if (input[i] == ',') {
+            commas_seen++;
+            if (commas_seen == 9) {
+                text_start = i + 1;
+                break;
+            }
+        }
+    }
+    std::string text_field = (text_start > 0) ? input.substr(text_start) : input;
+
+    // вырезаем теги форматирования {\...}
+    std::string result;
+    result.reserve(text_field.size());
+    bool inside_tag = false;
+    for (char c : text_field) {
+        if (c == '{') { inside_tag = true; continue; }
+        if (c == '}') { inside_tag = false; continue; }
+        if (inside_tag) continue;
+        if (c == '\\' ) continue;  // ASS также использует \N для переноса строки вне тегов иногда
+        result.push_back(c);
+    }
+
+    // \N и \n внутри ASS означают перенос строки — заменим на пробел для простоты (или на '\n', если хочешь многострочность)
+    size_t pos;
+    while ((pos = result.find("N")) != std::string::npos && pos > 0 && result[pos-1] == '\\') {
+        result.replace(pos - 1, 2, " ");
+    }
+
+    return result;
+}
+} // anonymous namespace
+Pipeline::Pipeline() : video_queue_(video_queue_size), audio_queue_(audio_queue_size) {}
 
 bool Pipeline::open() {
 
@@ -39,6 +83,15 @@ bool Pipeline::open() {
             return false;
         if (!audio_resampler_.open(audio_decoder_.get_codec_context()))
             return false;
+    }
+
+    if(demuxer_.has_subtitles()) {
+        auto subtitle_info = demuxer_.subtitle_stream_info();
+        if(subtitle_info.has_value()) {
+           if(subtitle_decoder_.init(*subtitle_info)) {
+               subtitle_decoder_ready_ = true;
+           }
+        }
     }
 
     return true;
@@ -161,17 +214,17 @@ bool Pipeline::seek(double seconds) {
     latest_video_pts_seconds_.store(seconds, std::memory_order_relaxed);
     video_queue_.clear();
     audio_queue_.clear();
+    std::lock_guard<std::mutex> subtitle_lock(subtitle_mutex_);
+    subtitle_events_.clear();
     return true;
 }
 
 void Pipeline::decode_video_packet(const AVPacket *packet) {
-    DecoderSendResult result = DecoderSendResult::Error;
-    (void)result;
     std::vector<smart_frame> ready_frames;
 
     {
         std::lock_guard<std::mutex> lock(pipeline_mutex_);
-        result = video_decoder_.send_packet(packet);
+        video_decoder_.send_packet(packet);
 
         while (auto frame = video_decoder_.receive_frame()) {
             ready_frames.push_back(std::move(*frame));
@@ -196,13 +249,11 @@ void Pipeline::decode_video_packet(const AVPacket *packet) {
     }
 }
 void Pipeline::decode_audio_packet(const AVPacket *packet) {
-    DecoderSendResult result = DecoderSendResult::Error;
-    (void)result;
     std::vector<smart_frame> ready_frames;
 
     {
         std::lock_guard<std::mutex> lock(pipeline_mutex_);
-        result = audio_decoder_.send_packet(packet);
+        audio_decoder_.send_packet(packet);
 
         while (auto frame = audio_decoder_.receive_frame()) {
             ready_frames.push_back(std::move(*frame));
@@ -216,6 +267,36 @@ void Pipeline::decode_audio_packet(const AVPacket *packet) {
             audio_queue_.push(std::move(*resampled));
         }
     }
+}
+
+void Pipeline:: decode_subtitle_packet(const AVPacket* packet) {
+    if(!subtitle_decoder_ready_) return;
+std::optional<smart_subtitle> sub;
+{
+    std::lock_guard<std::mutex> lock(pipeline_mutex_);
+    sub = subtitle_decoder_.decode(packet);
+}
+
+if(!sub.has_value()) return;
+
+AVSubtitle * raw = sub->get();
+
+double pts_seconds = static_cast<double>(packet->pts) * av_q2d(demuxer_.subtitle_time_base());
+double start = pts_seconds +  static_cast<double>(raw->start_display_time) / 1000.0;
+double end = pts_seconds +  static_cast<double>(raw->end_display_time) / 1000.0;
+
+
+for(unsigned int i = 0; i < raw->num_rects; i++) {
+    AVSubtitleRect* rect = raw->rects[i];
+    std::string text;
+
+    if(rect->ass) text = strip_ass_tags(rect->ass);
+    else if(rect->text) text = rect->text;
+    if(text.empty()) continue;
+
+    std::lock_guard<std::mutex> lock(subtitle_mutex_);
+    subtitle_events_.push_back({start, end, text});
+}
 }
 
 void Pipeline::demux_loop() {
@@ -243,6 +324,10 @@ void Pipeline::demux_loop() {
             decode_audio_packet(packet->packet.get());
             break;
         }
+        case PacketType::SUBTITLE: {
+            decode_subtitle_packet(packet->packet.get());
+            break;
+        }
 
         case PacketType::OTHER:
             break;
@@ -255,6 +340,18 @@ void Pipeline::demux_loop() {
 
 FrameQueue<smart_frame> &Pipeline::video_frames() { return video_queue_; }
 FrameQueue<smart_frame> &Pipeline::audio_frames() { return audio_queue_; }
+
+std::optional<std::string> Pipeline::current_subtitle_text() const {
+    double time = clock_.get_time();
+    std::lock_guard<std::mutex> lock(subtitle_mutex_);
+
+   for(const auto& ev : subtitle_events_) {
+       if(time >= ev.start_time && time <= ev.end_time) {
+           return ev.text;
+       }
+   }
+return std::nullopt;
+}
 
 Clock &Pipeline::clock() { return clock_; }
 

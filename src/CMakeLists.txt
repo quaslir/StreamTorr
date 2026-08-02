@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.20)
 set(STREAMTORR_LIB_NAME stream-torr-src)
 
 set(TORRENT_SOURCES torrent/torrent_client.cpp)
-set(DECODER_SOURCES decoder/demuxer.cpp decoder/video_decoder.cpp decoder/audio_decoder.cpp decoder/clock.cpp)
+set(DECODER_SOURCES decoder/demuxer.cpp decoder/video_decoder.cpp decoder/audio_decoder.cpp decoder/subtitle_decoder.cpp decoder/clock.cpp)
 set(PIPELINE_SOURCES pipeline/pipeline.cpp)
 set(RENDER_SOURCES render/video_renderer.cpp render/audio_renderer.cpp render/ui_overlay.cpp)
 set(PLAYER_SOURCES player/player.cpp)

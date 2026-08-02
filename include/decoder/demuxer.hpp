@@ -27,7 +27,7 @@ class Demuxer {
 
     int video_stream_index{-1};
     int audio_stream_index{-1};
-
+    int subtitle_stream_index{-1};
     bool open_{false};
 
   public:
@@ -40,14 +40,17 @@ class Demuxer {
 
     bool has_video() const;
     bool has_audio() const;
+    bool has_subtitles() const;
 
     std::optional<AVCodecParameters *> video_stream_info() const;
     std::optional<AVCodecParameters *> audio_stream_info() const;
+    std::optional<AVCodecParameters *> subtitle_stream_info() const;
 
     std::optional<std::pair<int, int>> video_stream_size() const;
 
     AVRational audio_time_base() const;
     AVRational video_time_base() const;
+    AVRational subtitle_time_base() const;
     std::optional<DemuxedPacket> read_next_packet();
     double duration_seconds() const;
 };

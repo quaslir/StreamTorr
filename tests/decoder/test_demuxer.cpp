@@ -60,7 +60,9 @@ TEST_CASE("Demuxer::read_next_packet reads until EOF without crashing", "[demuxe
     REQUIRE(demuxer.open(kTestVideoPath));
 
     int video_packets = 0;
+
     int audio_packets = 0;
+    int subtitle_packets = 0;
     int other_packets = 0;
     int error_packets = 0;
 
@@ -78,6 +80,7 @@ TEST_CASE("Demuxer::read_next_packet reads until EOF without crashing", "[demuxe
         switch (packet->type) {
             case PacketType::VIDEO: ++video_packets; break;
             case PacketType::AUDIO: ++audio_packets; break;
+            case PacketType::SUBTITLE: ++subtitle_packets; break;
             case PacketType::OTHER: ++other_packets; break;
             case PacketType::ERROR: ++error_packets; break;
         }
@@ -92,5 +95,6 @@ TEST_CASE("Demuxer::read_next_packet reads until EOF without crashing", "[demuxe
     // should match exactly.
     INFO("video packets: " << video_packets);
     INFO("audio packets: " << audio_packets);
+    INFO("subtitle packets: " << subtitle_packets);
     INFO("other packets: " << other_packets);
 }
