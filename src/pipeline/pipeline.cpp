@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <mutex>
 #include <thread>
-Pipeline::Pipeline() : video_queue_(80), audio_queue_(160) {}
+Pipeline::Pipeline() : video_queue_(300), audio_queue_(600) {}
 
 bool Pipeline::open() {
 
@@ -272,10 +272,6 @@ double Pipeline::buffered_seconds() const {
     return latest_video_pts_seconds_.load(std::memory_order_relaxed) - clock_.get_time();
 }
 
-double Pipeline::duration_seconds() const {
-    return demuxer_.duration_seconds();
-}
+double Pipeline::duration_seconds() const { return demuxer_.duration_seconds(); }
 
-float Pipeline::overall_progress() const {
-    return torrent_client_.overall_progress();
-}
+float Pipeline::overall_progress() const { return torrent_client_.overall_progress(); }

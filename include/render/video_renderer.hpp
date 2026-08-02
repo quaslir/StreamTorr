@@ -4,8 +4,6 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
-
-
 class VideoRenderer {
   private:
     smart_window window_{nullptr};
@@ -33,5 +31,6 @@ class VideoRenderer {
     SDL_Renderer *renderer() const;
     std::pair<int, int> window_size() const;
     void toggle_fullscreen(bool fullscreen_on = true);
+    bool is_fullscreen() const;
     void close();
 };

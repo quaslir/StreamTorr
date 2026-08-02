@@ -228,7 +228,8 @@ void TorrentClient::alert_loop() {
 }
 
 float TorrentClient::overall_progress() const {
-    if(!handle_.is_valid()) return 1.0f;
+    if (!handle_.is_valid())
+        return 1.0f;
     return handle_.status().progress;
 }
 

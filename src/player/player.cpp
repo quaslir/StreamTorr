@@ -64,7 +64,8 @@ void Player::audio_loop() {
         double frame_end_pts = pts_seconds + frame_duration;
         int data_size = raw->nb_samples * raw->ch_layout.nb_channels *
                         av_get_bytes_per_sample(static_cast<AVSampleFormat>(raw->format));
-        audio_renderer_.render_frame(raw->data[0], static_cast<uint32_t>(data_size), volume_.load(std::memory_order_relaxed));
+        audio_renderer_.render_frame(raw->data[0], static_cast<uint32_t>(data_size),
+                                     volume_.load(std::memory_order_relaxed));
         uint32_t queued_bytes = audio_renderer_.queued_size();
 
         uint32_t bytes_per_second = static_cast<uint32_t>(raw->sample_rate) *
@@ -110,7 +111,7 @@ void Player::update() {
     if (state_ != PlayerState::Playing && state_ != PlayerState::Paused &&
         state_ != PlayerState::Buffering)
         return;
-    FrameInput input  = ui_overlay_.poll_events();
+    FrameInput input = ui_overlay_.poll_events();
     if (input.event == RenderEvent::WINDOW_CLOSED) {
         std::cerr << "Window was closed" << std::endl;
         stop();
@@ -125,25 +126,31 @@ void Player::update() {
         seek(pipeline_.clock().get_time() - 10);
     } else if (input.event == RenderEvent::SEEK_FORWARD) {
         seek(pipeline_.clock().get_time() + 10);
-    } else if(input.event == RenderEvent::DISABLE_FULLSCREEN) {
+    } else if (input.event == RenderEvent::DISABLE_FULLSCREEN) {
         video_renderer_.toggle_fullscreen(false);
-    }
-    else if(input.event == RenderEvent::ENABLE_FULLSCREEN) {
+    } else if (input.event == RenderEvent::ENABLE_FULLSCREEN) {
         video_renderer_.toggle_fullscreen();
     }
 
-    else if(input.mouse_clicked) {
-        HitResult hit = ui_overlay_.handle_click(input.mouse_x, input.mouse_y, pipeline_.duration_seconds());
-        if(hit.play_pause_clicked) toggle_pause();
-        else if(hit.seek_requested) seek(hit.seek_to_seconds);
-        else if(hit.volume_changed) volume_.store(hit.new_volume, std::memory_order_relaxed);
-        else toggle_pause();
+    else if (input.mouse_clicked) {
+        HitResult hit =
+            ui_overlay_.handle_click(input.mouse_x, input.mouse_y, pipeline_.duration_seconds());
+        if (hit.play_pause_clicked)
+            toggle_pause();
+        else if (hit.seek_requested)
+            seek(hit.seek_to_seconds);
+        else if (hit.volume_changed)
+            volume_.store(hit.new_volume, std::memory_order_relaxed);
+        else if(hit.fullscreen_toggled) {
+            video_renderer_.toggle_fullscreen(!video_renderer_.is_fullscreen());
+        }
+        else
+            toggle_pause();
     }
 
-
-     if (!((std::chrono::steady_clock::now() - last_seek_at_) < kSeekGracePeriod) &&
-               (state_ == PlayerState::Playing && clock_primed && player_torrent_ &&
-                pipeline_.buffered_seconds() < kLowWatermark)) {
+    if (!((std::chrono::steady_clock::now() - last_seek_at_) < kSeekGracePeriod) &&
+        (state_ == PlayerState::Playing && clock_primed && player_torrent_ &&
+         pipeline_.buffered_seconds() < kLowWatermark)) {
         std::cerr << "Entering buffered state..." << std::endl;
         pause_started_at_ = std::chrono::steady_clock::now();
         audio_renderer_.pause(true);
@@ -164,58 +171,57 @@ void Player::update() {
 
     bool need_new_frame = (state_ == PlayerState::Playing);
 
-    if(need_new_frame && !pending_frame_) {
+    if (need_new_frame && !pending_frame_) {
         if (!pipeline_.video_frames().empty()) {
-        pending_frame_ = pipeline_.video_frames().pop();
-        if (!pending_frame_) {
-            stop();
-            state_ = PlayerState::Finished;
-            return;
-        }
+            pending_frame_ = pipeline_.video_frames().pop();
+            if (!pending_frame_) {
+                stop();
+                state_ = PlayerState::Finished;
+                return;
+            }
         }
     }
-    if(pending_frame_) {
-    double frame_pts = static_cast<double>(pending_frame_->get()->pts) * av_q2d(video_time_base_);
+    if (pending_frame_) {
+        double frame_pts =
+            static_cast<double>(pending_frame_->get()->pts) * av_q2d(video_time_base_);
 
-    if (!clock_primed) {
-        playback_start_real_ = std::chrono::steady_clock::now();
-        playback_start_pts_ = frame_pts;
-        pipeline_.clock().update(frame_pts);
-        clock_primed = true;
-    }
-
-    double clock_time = pipeline_.clock().get_time();
-
-    double elapsed_real =
-        std::chrono::duration<double>(std::chrono::steady_clock::now() - playback_start_real_)
-            .count();
-
-    double estimated_clock = playback_start_pts_ + elapsed_real;
-
-    if (estimated_clock > clock_time) {
-        clock_time = estimated_clock;
-    }
-
-    bool should_render_frame = (frame_pts <= clock_time);
-    if(should_render_frame) {
-        if (!video_renderer_.update_texture(pending_frame_->get())) {
-            stop();
-            state_ = PlayerState::Finished;
-            return;
+        if (!clock_primed) {
+            playback_start_real_ = std::chrono::steady_clock::now();
+            playback_start_pts_ = frame_pts;
+            pipeline_.clock().update(frame_pts);
+            clock_primed = true;
         }
+
+        double clock_time = pipeline_.clock().get_time();
+
+        double elapsed_real =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - playback_start_real_)
+                .count();
+
+        double estimated_clock = playback_start_pts_ + elapsed_real;
+
+        if (estimated_clock > clock_time) {
+            clock_time = estimated_clock;
+        }
+
+        bool should_render_frame = (frame_pts <= clock_time);
+        if (should_render_frame) {
+            if (!video_renderer_.update_texture(pending_frame_->get())) {
+                stop();
+                state_ = PlayerState::Finished;
+                return;
+            }
             pending_frame_.reset();
-    }
-
-
+        }
     }
     video_renderer_.draw_frame();
     auto window_size = video_renderer_.window_size();
-    ui_overlay_.draw(video_renderer_.renderer(), window_size.first, window_size.second, pipeline_.clock().get_time(), pipeline_.duration_seconds(),
-                     pipeline_.overall_progress(), state_ == PlayerState::Playing, volume_.load(std::memory_order_relaxed));
+    ui_overlay_.draw(video_renderer_.renderer(), window_size.first, window_size.second,
+                     pipeline_.clock().get_time(), pipeline_.duration_seconds(),
+                     pipeline_.overall_progress(), state_ == PlayerState::Playing,
+                     volume_.load(std::memory_order_relaxed));
 
     video_renderer_.present();
-
-
 }
 
 void Player::stop() {

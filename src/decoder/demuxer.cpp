@@ -136,16 +136,16 @@ std::optional<std::pair<int, int>> Demuxer::video_stream_size() const {
     return std::make_pair(codecpar->width, codecpar->height);
 }
 double Demuxer::duration_seconds() const {
-    if(!format_context) return 0.0;
-    if (format_context->duration != AV_NOPTS_VALUE)  return static_cast<double>(format_context->duration) / AV_TIME_BASE;
+    if (!format_context)
+        return 0.0;
+    if (format_context->duration != AV_NOPTS_VALUE)
+        return static_cast<double>(format_context->duration) / AV_TIME_BASE;
 
-    if(has_video()) {
-        AVStream * stream = format_context->streams[video_stream_index];
-        if(stream->duration != AV_NOPTS_VALUE) {
+    if (has_video()) {
+        AVStream *stream = format_context->streams[video_stream_index];
+        if (stream->duration != AV_NOPTS_VALUE) {
             return static_cast<double>(stream->duration) * av_q2d(stream->time_base);
         }
     }
     return 0.0;
-
-
 }
