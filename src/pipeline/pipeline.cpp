@@ -28,7 +28,7 @@ std::string strip_ass_tags(const char* ass_line) {
     for (size_t i = 0; i < input.size(); i++) {
         if (input[i] == ',') {
             commas_seen++;
-            if (commas_seen == 9) {
+            if (commas_seen == 8) {
                 text_start = i + 1;
                 break;
             }
@@ -281,17 +281,24 @@ if(!sub.has_value()) return;
 
 AVSubtitle * raw = sub->get();
 
+double duration_seconds = static_cast<double>(packet->duration) * av_q2d(demuxer_.subtitle_time_base());
 double pts_seconds = static_cast<double>(packet->pts) * av_q2d(demuxer_.subtitle_time_base());
 double start = pts_seconds +  static_cast<double>(raw->start_display_time) / 1000.0;
-double end = pts_seconds +  static_cast<double>(raw->end_display_time) / 1000.0;
+double end = (duration_seconds > 0.0) ? (start + duration_seconds) : (start + 3.0);
 
 
 for(unsigned int i = 0; i < raw->num_rects; i++) {
+
     AVSubtitleRect* rect = raw->rects[i];
+    std::fprintf(stderr, "[DEBUG] rect[%u] type=%d ass=%p text=%p num_colors=%d w=%d h=%d\n",
+        i, static_cast<int>(rect->type), static_cast<void*>(rect->ass), static_cast<void*>(rect->text),
+        rect->nb_colors, rect->w, rect->h);
+
     std::string text;
 
     if(rect->ass) text = strip_ass_tags(rect->ass);
     else if(rect->text) text = rect->text;
+        std::fprintf(stderr, "[DEBUG] adding subtitle event: start=%.2f end=%.2f text='%s'\n", start, end, text.c_str());
     if(text.empty()) continue;
 
     std::lock_guard<std::mutex> lock(subtitle_mutex_);
