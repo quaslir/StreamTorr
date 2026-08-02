@@ -1,6 +1,7 @@
 #include "render/ui_overlay.hpp"
 #include "configuration/config.hpp"
 #include "fmt/format.h"
+#include <SDL_surface.h>
 #include <SDL_ttf.h>
 #include <algorithm>
 #include <chrono>
@@ -245,4 +246,23 @@ FrameInput UIOverlay::poll_events() {
     }
 
     return input;
+}
+
+void UIOverlay::draw_subtitle(SDL_Renderer * renderer, int window_w, int window_h, const std::string& text) {
+    SDL_Surface * surface = TTF_RenderText_Blended(font_, text.c_str(), SDL_Color{255, 255, 255, 255});
+    if(!surface) return;
+    SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+    if(!texture) return;
+
+    int text_w{0}, text_h{0};
+
+    SDL_QueryTexture(texture, nullptr, nullptr, &text_w, &text_h);
+
+    int sub_x = (window_w - text_w) / 2;
+    int sub_y = window_h - kPanelHeight - text_h - 20;
+
+    SDL_Rect dst{sub_x, sub_y, text_w, text_h};
+    SDL_RenderCopy(renderer, texture, nullptr, &dst);
+    SDL_DestroyTexture(texture);
 }

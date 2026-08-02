@@ -218,7 +218,7 @@ void Player::update() {
     auto window_size = video_renderer_.window_size();
     auto subtitle_text = pipeline_.current_subtitle_text();
     if(subtitle_text.has_value()) {
-        std::cout << *subtitle_text << std::endl;
+        ui_overlay_.draw_subtitle(video_renderer_.renderer(), window_size.first, window_size.second, *subtitle_text);
     }
     ui_overlay_.draw(video_renderer_.renderer(), window_size.first, window_size.second,
                      pipeline_.clock().get_time(), pipeline_.duration_seconds(),
