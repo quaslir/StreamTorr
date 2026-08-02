@@ -6,7 +6,7 @@ set(STREAMTORR_LIB_NAME stream-torr-src)
 set(TORRENT_SOURCES torrent/torrent_client.cpp)
 set(DECODER_SOURCES decoder/demuxer.cpp decoder/video_decoder.cpp decoder/audio_decoder.cpp decoder/clock.cpp)
 set(PIPELINE_SOURCES pipeline/pipeline.cpp)
-set(RENDER_SOURCES render/video_renderer.cpp render/audio_renderer.cpp)
+set(RENDER_SOURCES render/video_renderer.cpp render/audio_renderer.cpp render/ui_overlay.cpp)
 set(PLAYER_SOURCES player/player.cpp)
 set(MEDIA_SOURCES media/video_resampler.cpp media/audio_resampler.cpp)
 set(IO_TORRENT_SOURCES io/torrent_io_context.cpp)
@@ -14,11 +14,16 @@ add_library(${STREAMTORR_LIB_NAME} STATIC ${TORRENT_SOURCES} ${DECODER_SOURCES} 
 ${MEDIA_SOURCES} ${IO_TORRENT_SOURCES})
 
 target_include_directories(${STREAMTORR_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_compile_definitions(${STREAMTORR_LIB_NAME} PRIVATE
+    ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets"
+)
 
 target_link_libraries(${STREAMTORR_LIB_NAME} PUBLIC
     project_warnings
     torrent-rasterbar
     SDL2::SDL2
+    SDL2_ttf::SDL2_ttf
+    fmt::fmt
     ffmpeg_interface
 )
 
