@@ -2,6 +2,17 @@ cmake_minimum_required(VERSION 3.20)
 
 project(stream-torr LANGUAGES CXX)
 
+
+# Default to a Release build if the user didn't ask for something else —
+# Unix Makefiles is a single-config generator, so this must be set at
+# configure time (cmake ..), not build time.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo" "MinSizeRel")
+endif()
+
+
+
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 if(CLANG_FORMAT_EXE)
     file(GLOB_RECURSE ALL_SOURCE_FILES
@@ -23,6 +34,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 enable_testing()
 
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
+if(ipo_supported)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+else()
+    message(STATUS "IPO/LTO not supported: ${ipo_error}")
+endif()
 
 add_library(project_warnings INTERFACE)
 
@@ -51,10 +69,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         -Wold-style-cast
         $<$<CONFIG:Debug>:-g3>
         $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
-        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+        $<$<CONFIG:Debug>:-fsanitize=thread>
     )
     target_link_options(project_warnings INTERFACE
-        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+        $<$<CONFIG:Debug>:-fsanitize=thread>
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(project_warnings INTERFACE /W4 /WX)
@@ -284,7 +302,9 @@ if(NOT EXISTS ${FONT_PATH})
 endif()
 
 
-enable_testing()
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(STATUS "Building Release — sanitizers disabled, optimizations enabled")
+endif()
 
 add_subdirectory(src)
     add_subdirectory(tests)

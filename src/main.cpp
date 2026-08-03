@@ -35,7 +35,6 @@ int main(int argc, char *argv[]) {
     });
 
     if (!player.open_torrent(path_or_url, kDownloadDir)) {
-        std::fprintf(stderr, "[MAIN] open_torrent FAILED\n");
         if (!player.open_local(path_or_url)) {
             SDL_Quit();
             return 1;
@@ -44,23 +43,14 @@ int main(int argc, char *argv[]) {
 
     loading.close();
 
-    std::fprintf(stderr, "[MAIN] play\n");
     player.play();
-
-    std::fprintf(stderr, "[MAIN] entering render loop\n");
-    long loop_count = 0;
     while (true) {
         player.update();
 
         if (player.state() == PlayerState::Finished || player.state() == PlayerState::Stopped) {
-            std::fprintf(stderr, "[MAIN] playback ended (state=%d)\n",
-                         static_cast<int>(player.state()));
             break;
         }
 
-        if (++loop_count % 5000 == 0) {
-            std::fprintf(stderr, "[MAIN] loop iteration %ld\n", loop_count);
-        }
 
         SDL_Delay(1);
     }

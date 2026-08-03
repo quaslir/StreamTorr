@@ -21,8 +21,7 @@ std::string strip_ass_tags(const char* ass_line) {
     if (!ass_line) return {};
     std::string input(ass_line);
 
-    // ASS-строка имеет формат: "Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text"
-    // нам нужно только поле Text — это всё после 9-й запятой
+
     int commas_seen = 0;
     size_t text_start = 0;
     for (size_t i = 0; i < input.size(); i++) {
@@ -36,7 +35,7 @@ std::string strip_ass_tags(const char* ass_line) {
     }
     std::string text_field = (text_start > 0) ? input.substr(text_start) : input;
 
-    // вырезаем теги форматирования {\...}
+
     std::string result;
     result.reserve(text_field.size());
     bool inside_tag = false;
@@ -44,11 +43,11 @@ std::string strip_ass_tags(const char* ass_line) {
         if (c == '{') { inside_tag = true; continue; }
         if (c == '}') { inside_tag = false; continue; }
         if (inside_tag) continue;
-        if (c == '\\' ) continue;  // ASS также использует \N для переноса строки вне тегов иногда
+        if (c == '\\' ) continue; 
         result.push_back(c);
     }
 
-    // \N и \n внутри ASS означают перенос строки — заменим на пробел для простоты (или на '\n', если хочешь многострочность)
+
     size_t pos;
     while ((pos = result.find("N")) != std::string::npos && pos > 0 && result[pos-1] == '\\') {
         result.replace(pos - 1, 2, " ");
@@ -56,7 +55,7 @@ std::string strip_ass_tags(const char* ass_line) {
 
     return result;
 }
-} // anonymous namespace
+} 
 Pipeline::Pipeline() : video_queue_(video_queue_size), audio_queue_(audio_queue_size) {}
 
 bool Pipeline::open() {
@@ -289,15 +288,12 @@ double end = (duration_seconds > 0.0) ? (start + duration_seconds) : (start + 3.
 for(unsigned int i = 0; i < raw->num_rects; i++) {
 
     AVSubtitleRect* rect = raw->rects[i];
-    std::fprintf(stderr, "[DEBUG] rect[%u] type=%d ass=%p text=%p num_colors=%d w=%d h=%d\n",
-        i, static_cast<int>(rect->type), static_cast<void*>(rect->ass), static_cast<void*>(rect->text),
-        rect->nb_colors, rect->w, rect->h);
 
     std::string text;
 
     if(rect->ass) text = strip_ass_tags(rect->ass);
     else if(rect->text) text = rect->text;
-        std::fprintf(stderr, "[DEBUG] adding subtitle event: start=%.2f end=%.2f text='%s'\n", start, end, text.c_str());
+        
     if(text.empty()) continue;
 
     std::lock_guard<std::mutex> lock(subtitle_mutex_);

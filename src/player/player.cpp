@@ -21,7 +21,6 @@ bool Player::open() {
     if (!audio_renderer_.open(48000, 2, AUDIO_S16SYS))
         return false;
     if (!ui_overlay_.open()) {
-        std::cerr << "UI overlay open failed" << std::endl;
         return false;
     }
     if (pipeline_.has_audio()) {
@@ -113,10 +112,8 @@ void Player::update() {
         return;
     FrameInput input = ui_overlay_.poll_events();
     if (input.event == RenderEvent::WINDOW_CLOSED) {
-        std::cerr << "Window was closed" << std::endl;
         stop();
         state_ = PlayerState::Finished;
-        std::cerr << "Exitting ..." << std::endl;
         return;
     }
 
@@ -151,7 +148,6 @@ void Player::update() {
     if (!((std::chrono::steady_clock::now() - last_seek_at_) < kSeekGracePeriod) &&
         (state_ == PlayerState::Playing && clock_primed && player_torrent_ &&
          pipeline_.buffered_seconds() < kLowWatermark)) {
-        std::cerr << "Entering buffered state..." << std::endl;
         pause_started_at_ = std::chrono::steady_clock::now();
         audio_renderer_.pause(true);
         state_ = PlayerState::Buffering;
@@ -166,7 +162,6 @@ void Player::update() {
         playback_start_real_ += pause_duration;
         audio_renderer_.pause(false);
         state_ = PlayerState::Playing;
-        std::cerr << "Exitting buffering state..." << std::endl;
     }
 
     bool need_new_frame = (state_ == PlayerState::Playing);

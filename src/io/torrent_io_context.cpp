@@ -20,9 +20,7 @@ extern "C" {
 
 bool TorrentIOContext::open(TorrentClient *client, const std::filesystem::path &file_path,
                             int64_t file_offset_in_torrent, int64_t total_size) {
-    std::fprintf(stderr, "[io] open: file_offset_in_torrent=%lld, total_size=%lld\n",
-                 static_cast<long long>(file_offset_in_torrent),
-                 static_cast<long long>(total_size));
+   
     if (!client)
         return false;
     client_ = client;
@@ -34,7 +32,6 @@ bool TorrentIOContext::open(TorrentClient *client, const std::filesystem::path &
     auto wait_start = std::chrono::steady_clock::now();
     while (!std::filesystem::exists(file_path)) {
         if (std::chrono::steady_clock::now() - wait_start > kFileWaitTimeout) {
-            std::fprintf(stderr, "[io] open: file never appeared: %s\n", file_path.c_str());
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
