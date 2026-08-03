@@ -68,10 +68,6 @@ float TorrentClient::window_progress(uint64_t offset, uint64_t length) const {
     return total > 0 ? static_cast<float>(have) / static_cast<float>(total) : 1.0f;
 }
 
-void TorrentClient::set_progress_callback(ProgressCallback cb) {
-    std::lock_guard<std::mutex> lock(progress_cb_mutex_);
-    progress_cb_ = cb;
-}
 
 void TorrentClient::set_abort_wait(bool status) {
     abort_wait_.store(status, std::memory_order_relaxed);
@@ -198,11 +194,6 @@ void TorrentClient::alert_loop() {
                 piece_downloaded_cv_.notify_all();
             }
 
-            if (lt::alert_cast<lt::metadata_received_alert>(alert)) {
-                std::lock_guard<std::mutex> lock(progress_cb_mutex_);
-                if (progress_cb_)
-                    progress_cb_({TorrentStage::FetchingMetadata, 1.0f});
-            }
         }
         if (++tick % 10 == 0) {
             auto s = handle_.status();

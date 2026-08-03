@@ -23,9 +23,8 @@ class TorrentClient {
 
     std::atomic<bool> running_{false};
     std::atomic<bool> abort_wait_{false};
-    ProgressCallback progress_cb_;
     mutable std::mutex mutex_;
-    mutable std::mutex progress_cb_mutex_;
+
 
     mutable std::condition_variable piece_downloaded_cv_;
     ActiveWindow active_window_;
@@ -39,7 +38,6 @@ class TorrentClient {
     ~TorrentClient();
     bool add_source(const std::string &magnet, const std::filesystem::path &download_dir);
     float window_progress(uint64_t offset, uint64_t length) const;
-    void set_progress_callback(ProgressCallback cb);
     void set_abort_wait(bool status);
     lt::torrent_status status() const;
     bool has_metadata() const;

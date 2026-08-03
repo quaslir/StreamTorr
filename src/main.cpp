@@ -3,8 +3,8 @@
 #include <cstdio>
 
 #include "player/player.hpp"
+#include "render/loading_screen.hpp"
 
-// Big Buck Bunny — official Blender Foundation magnet, safe test source.
 constexpr const char *kDownloadDir = "./downloads";
 
 int main(int argc, char *argv[]) {
@@ -18,14 +18,20 @@ int main(int argc, char *argv[]) {
         SDL_Quit();
         return 1;
     }
+    LoadingScreen loading;
+    if(!loading.open()) {
+            SDL_Quit();
+            return 1;
+    }
+
+
     Player player;
-    player.set_progress_callback([](TorrentProgress p) {
-        const char *stage_name = p.stage == TorrentStage::FetchingMetadata      ? "metadata"
-                                 : p.stage == TorrentStage::DownloadingHeadTail ? "buffering"
-                                 : p.stage == TorrentStage::OpeningStream       ? "opening"
-                                                                                : "ready";
-        std::fprintf(stderr, "[LOADING] %s %.1f%%\n", stage_name,
-                     static_cast<double>(p.percent * 100.0f));
+    player.set_progress_callback([&loading](TorrentProgress p) {
+        const char *stage_name = p.stage == TorrentStage::FetchingMetadata      ? "Fetching metadata"
+                                 : p.stage == TorrentStage::DownloadingHeadTail ? "Buffering"
+                                 : p.stage == TorrentStage::OpeningStream       ? "Opening"
+                                                                                : "Ready";
+        loading.update(stage_name, p.percent);
     });
 
     if (!player.open_torrent(path_or_url, kDownloadDir)) {
@@ -35,6 +41,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
+
+    loading.close();
 
     std::fprintf(stderr, "[MAIN] play\n");
     player.play();
