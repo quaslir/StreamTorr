@@ -172,7 +172,6 @@ bool Pipeline::open_torrent(const std::string &magnet, const std::filesystem::pa
 }
 void Pipeline::set_progress_callback(ProgressCallback cb) {
     progress_cb_ = cb;
-    torrent_client_.set_progress_callback(progress_cb_);
     io_context_.set_progress_callback(progress_cb_);
 }
 
