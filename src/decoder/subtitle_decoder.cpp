@@ -30,7 +30,6 @@ bool SubtitleDecoder::init(AVCodecParameters * codecpar) {
 }
 
 std::optional<smart_subtitle> SubtitleDecoder::decode(const AVPacket * packet) {
-    std::cerr << "Decoding subtitle packet" << std::endl;
     auto raw_sub = new AVSubtitle();
     smart_subtitle sub{raw_sub};
     int got_subtitle = 0;

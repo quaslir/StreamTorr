@@ -46,8 +46,7 @@ std::optional<smart_frame> AudioDecoder::receive_frame() {
     if (result != AVERROR(EAGAIN) && result != AVERROR_EOF) {
         char err_buf[128];
         av_strerror(result, err_buf, sizeof(err_buf));
-        std::fprintf(stderr, "[audio_decoder] receive_frame REAL ERROR: %s (code=%d)\n", err_buf,
-                     result);
+      
     }
 
     return std::nullopt;
