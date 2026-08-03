@@ -1,4 +1,5 @@
 #include "decoder/demuxer.hpp"
+#include "decoder/types.hpp"
 #include <cstdint>
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -41,6 +42,10 @@ bool Demuxer::open(const std::string &filename) {
 
     audio_stream_index = audio_index;
 
+
+    int subtitle_index = av_find_best_stream(format_context.get(), AVMEDIA_TYPE_SUBTITLE, -1, -1, nullptr, 0);
+    subtitle_stream_index = subtitle_index;
+
     open_ = true;
     return true;
 }
@@ -68,6 +73,8 @@ bool Demuxer::open_with_io_context(AVIOContext *io_context) {
     audio_stream_index = audio_index;
 
     open_ = true;
+    int subtitle_index = av_find_best_stream(format_context.get(), AVMEDIA_TYPE_SUBTITLE, -1, -1, nullptr, 0);
+    subtitle_stream_index = subtitle_index;
     return true;
 }
 
@@ -83,7 +90,7 @@ bool Demuxer::is_open() const { return open_; }
 
 bool Demuxer::has_video() const { return video_stream_index >= 0; }
 bool Demuxer::has_audio() const { return audio_stream_index >= 0; }
-
+   bool Demuxer::has_subtitles() const {return subtitle_stream_index >= 0;}
 std::optional<AVCodecParameters *> Demuxer::video_stream_info() const {
     if (!has_video())
         return std::nullopt;
@@ -97,6 +104,15 @@ std::optional<AVCodecParameters *> Demuxer::audio_stream_info() const {
 
     return format_context->streams[audio_stream_index]->codecpar;
 }
+
+
+std::optional<AVCodecParameters *> Demuxer::subtitle_stream_info() const {
+    if(!has_subtitles())
+        return std::nullopt;
+
+    return format_context->streams[subtitle_stream_index]->codecpar;
+}
+
 
 std::optional<DemuxedPacket> Demuxer::read_next_packet() {
     smart_packet packet{av_packet_alloc()};
@@ -114,6 +130,8 @@ std::optional<DemuxedPacket> Demuxer::read_next_packet() {
         packet_type = PacketType::VIDEO;
     else if (packet->stream_index == audio_stream_index)
         packet_type = PacketType::AUDIO;
+    else if(packet->stream_index == subtitle_stream_index)
+        packet_type = PacketType::SUBTITLE;
     else
         packet_type = PacketType::OTHER;
 
@@ -126,6 +144,10 @@ AVRational Demuxer::audio_time_base() const {
 
 AVRational Demuxer::video_time_base() const {
     return format_context->streams[video_stream_index]->time_base;
+}
+
+AVRational Demuxer::subtitle_time_base() const {
+    return format_context->streams[subtitle_stream_index]->time_base;
 }
 
 std::optional<std::pair<int, int>> Demuxer::video_stream_size() const {

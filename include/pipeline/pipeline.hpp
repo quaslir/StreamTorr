@@ -7,9 +7,11 @@
 #include "io/torrent_io_context.hpp"
 #include "media/audio_resampler.hpp"
 #include "media/video_resampler.hpp"
+#include "decoder/subtitle_decoder.hpp"
 #include "torrent/torrent_client.hpp"
 #include <cstdint>
 #include <filesystem>
+#include <libavcodec/packet.h>
 #include <libavutil/rational.h>
 #include <thread>
 class Pipeline {
@@ -17,10 +19,13 @@ class Pipeline {
     TorrentIOContext io_context_;
     Demuxer demuxer_;
     std::mutex pipeline_mutex_;
+   mutable std::mutex subtitle_mutex_;
     VideoDecoder video_decoder_;
     AudioDecoder audio_decoder_;
+    SubtitleDecoder subtitle_decoder_;
     FrameQueue<smart_frame> video_queue_;
     FrameQueue<smart_frame> audio_queue_;
+    std::vector<SubtitleEvent> subtitle_events_;
     AudioResampler audio_resampler_;
     VideoResampler video_resampler_;
     Clock clock_;
@@ -35,10 +40,11 @@ class Pipeline {
     int64_t file_offset_in_torrent_{0};
     int64_t file_size_{0};
     bool is_torrent_{false};
+    bool subtitle_decoder_ready_{false};
     void demux_loop();
     void decode_video_packet(const AVPacket *packet);
     void decode_audio_packet(const AVPacket *packet);
-
+    void decode_subtitle_packet(const AVPacket* packet);
     bool open();
 
   public:
@@ -53,6 +59,7 @@ class Pipeline {
     double buffered_seconds() const;
     FrameQueue<smart_frame> &video_frames();
     FrameQueue<smart_frame> &audio_frames();
+    std::optional<std::string> current_subtitle_text() const;
     Clock &clock();
 
     AVRational audio_time_base() const;

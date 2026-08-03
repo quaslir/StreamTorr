@@ -51,11 +51,10 @@ class UIOverlay {
     void draw_play_button(SDL_Renderer *renderer, int position_y, bool is_playing);
 
   public:
-    // ~UIOverlay();
     bool open();
     void draw(SDL_Renderer *renderer, int window_w, int window_h, double current_time,
               double duration, float download_progress, bool is_playing, float volume);
-
+    void draw_subtitle(SDL_Renderer * renderer, int window_w, int window_h, const std::string& text);
     HitResult handle_click(int x, int y, double duration);
     FrameInput poll_events();
 };
