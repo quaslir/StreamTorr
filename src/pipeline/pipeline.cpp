@@ -179,11 +179,28 @@ void Pipeline::start() {
     demux_thread_ = std::thread(&Pipeline::demux_loop, this);
 }
 void Pipeline::stop() {
+    auto t0 = std::chrono::steady_clock::now();
+    auto elapsed = [t0]() {
+        return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    };
+
+    torrent_client_.abort();
+    std::fprintf(stderr, "[pipeline stop] after torrent_client.abort: +%.3fs\n", elapsed());
+
+    torrent_client_.set_abort_wait(true);
     running_ = false;
     video_queue_.close();
     audio_queue_.close();
-    if (demux_thread_.joinable())
+    video_queue_.clear();
+    audio_queue_.clear();
+    std::fprintf(stderr, "[pipeline stop] queues closed/cleared: +%.3fs\n", elapsed());
+
+    if (demux_thread_.joinable()) {
         demux_thread_.join();
+    }
+    std::fprintf(stderr, "[pipeline stop] after demux join: +%.3fs\n", elapsed());
+
+    torrent_client_.set_abort_wait(false);
 }
 
 bool Pipeline::seek(double seconds) {
@@ -302,6 +319,8 @@ for(unsigned int i = 0; i < raw->num_rects; i++) {
 }
 
 void Pipeline::demux_loop() {
+    int consecutive_errors = 0;
+
     while (running_) {
         std::optional<DemuxedPacket> packet;
         {
@@ -335,6 +354,12 @@ void Pipeline::demux_loop() {
             break;
 
         case PacketType::ERROR:
+        if(++consecutive_errors > 20) {
+            video_queue_.close();
+            audio_queue_.close();
+            return;
+        }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             break;
         }
     }

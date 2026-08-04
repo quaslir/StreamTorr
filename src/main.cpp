@@ -25,8 +25,8 @@ int main(int argc, char *argv[]) {
     }
 
 
-    Player player;
-    player.set_progress_callback([&loading](TorrentProgress p) {
+    auto player = std::make_shared<Player>();
+    player->set_progress_callback([&loading](TorrentProgress p) {
         const char *stage_name = p.stage == TorrentStage::FetchingMetadata      ? "Fetching metadata"
                                  : p.stage == TorrentStage::DownloadingHeadTail ? "Buffering"
                                  : p.stage == TorrentStage::OpeningStream       ? "Opening"
@@ -34,8 +34,8 @@ int main(int argc, char *argv[]) {
         loading.update(stage_name, p.percent);
     });
 
-    if (!player.open_torrent(path_or_url, kDownloadDir)) {
-        if (!player.open_local(path_or_url)) {
+    if (!player->open_torrent(path_or_url, kDownloadDir)) {
+        if (!player->open_local(path_or_url)) {
             SDL_Quit();
             return 1;
         }
@@ -43,18 +43,23 @@ int main(int argc, char *argv[]) {
 
     loading.close();
 
-    player.play();
+    player->play();
     while (true) {
-        player.update();
+        player->update();
 
-        if (player.state() == PlayerState::Finished || player.state() == PlayerState::Stopped) {
+        if (player->state() == PlayerState::Finished || player->state() == PlayerState::Stopped) {
             break;
         }
 
-
         SDL_Delay(1);
     }
-    TTF_Quit();
-    SDL_Quit();
+
+    auto t_destroy = std::chrono::steady_clock::now();
+player.reset();
+std::fprintf(stderr, "[main] player destroyed: +%.3fs\n",
+    std::chrono::duration<double>(std::chrono::steady_clock::now() - t_destroy).count());
+
+TTF_Quit();
+SDL_Quit();
     return 0;
 }

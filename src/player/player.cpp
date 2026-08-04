@@ -174,6 +174,10 @@ void Player::update() {
                 state_ = PlayerState::Finished;
                 return;
             }
+        } else if(pipeline_.video_frames().is_closed()) {
+            stop();
+            state_ = PlayerState::Finished;
+            return;
         }
     }
     if (pending_frame_) {
@@ -227,9 +231,14 @@ void Player::stop() {
 
     audio_renderer_.pause(false);
     pipeline_.stop();
+
+
     if (audio_thread_.joinable())
         audio_thread_.join();
+
+
     video_renderer_.close();
+
 
     state_ = PlayerState::Stopped;
 }

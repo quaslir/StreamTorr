@@ -35,5 +35,5 @@ std::optional<smart_subtitle> SubtitleDecoder::decode(const AVPacket * packet) {
     int got_subtitle = 0;
     int result = avcodec_decode_subtitle2(codec_context.get(), sub.get(), &got_subtitle, packet);
     if(result < 0 || !got_subtitle) return std::nullopt;
-    return std::move(sub);
+    return sub;
 }
