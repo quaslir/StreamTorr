@@ -54,10 +54,7 @@ int main(int argc, char *argv[]) {
         SDL_Delay(1);
     }
 
-    auto t_destroy = std::chrono::steady_clock::now();
 player.reset();
-std::fprintf(stderr, "[main] player destroyed: +%.3fs\n",
-    std::chrono::duration<double>(std::chrono::steady_clock::now() - t_destroy).count());
 
 TTF_Quit();
 SDL_Quit();

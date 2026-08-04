@@ -67,13 +67,16 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         -Wdouble-promotion
         -Wformat=2
         -Wold-style-cast
-        $<$<CONFIG:Debug>:-g3>
+         $<$<CONFIG:Debug>:-g3>
         $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
-        $<$<CONFIG:Debug>:-fsanitize=thread>
     )
-    target_link_options(project_warnings INTERFACE
-        $<$<CONFIG:Debug>:-fsanitize=thread>
-    )
+    if(STREAMTORR_SANITIZER STREQUAL "thread")
+        target_compile_options(project_warnings INTERFACE $<$<CONFIG:Debug>:-fsanitize=thread>)
+        target_link_options(project_warnings INTERFACE $<$<CONFIG:Debug>:-fsanitize=thread>)
+    elseif(STREAMTORR_SANITIZER STREQUAL "address")
+        target_compile_options(project_warnings INTERFACE $<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+        target_link_options(project_warnings INTERFACE $<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+    endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(project_warnings INTERFACE /W4 /WX)
 endif()

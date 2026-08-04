@@ -179,13 +179,9 @@ void Pipeline::start() {
     demux_thread_ = std::thread(&Pipeline::demux_loop, this);
 }
 void Pipeline::stop() {
-    auto t0 = std::chrono::steady_clock::now();
-    auto elapsed = [t0]() {
-        return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-    };
 
     torrent_client_.abort();
-    std::fprintf(stderr, "[pipeline stop] after torrent_client.abort: +%.3fs\n", elapsed());
+
 
     torrent_client_.set_abort_wait(true);
     running_ = false;
@@ -193,12 +189,11 @@ void Pipeline::stop() {
     audio_queue_.close();
     video_queue_.clear();
     audio_queue_.clear();
-    std::fprintf(stderr, "[pipeline stop] queues closed/cleared: +%.3fs\n", elapsed());
 
     if (demux_thread_.joinable()) {
         demux_thread_.join();
     }
-    std::fprintf(stderr, "[pipeline stop] after demux join: +%.3fs\n", elapsed());
+
 
     torrent_client_.set_abort_wait(false);
 }
