@@ -198,8 +198,6 @@ void TorrentClient::alert_loop() {
         }
         if (++tick % 10 == 0) {
             auto s = handle_.status();
-            std::fprintf(stderr, "[RATE] down=%d KB/s peers=%d\n", s.download_rate / 1024,
-                         s.num_peers);
 
             uint64_t offset, length;
             bool have_window;
