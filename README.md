@@ -6,22 +6,40 @@
 
 ---
 
+
+<p align="center">
+  <img src="assets/screenshots/screenshot1.png" alt="StreamTorr playing a torrent stream with the control panel visible" width="800">
+</p>
+
+<p align="center">
+  <em>Streaming Big Buck Bunny straight from a magnet link — download progress (grey) and playback position (red) on the same bar.</em>
+</p>
+
+---
+
 ## Table of Contents
 
-- [What this is](#what-this-is)
-- [Features](#features)
-- [Architecture](#architecture)
-- [How the streaming actually works](#how-the-streaming-actually-works)
-- [A/V sync](#av-sync)
-- [Threading model](#threading-model)
-- [Controls](#controls)
-- [Building](#building)
-- [Project layout](#project-layout)
-- [Testing](#testing)
-- [Legal test content](#legal-test-content)
-- [Known limitations / roadmap](#known-limitations--roadmap)
-- [Hard-won lessons](#hard-won-lessons)
-- [License](#license)
+- [StreamTorr](#streamtorr)
+  - [Table of Contents](#table-of-contents)
+  - [What this is](#what-this-is)
+  - [Features](#features)
+  - [Architecture](#architecture)
+    - [Core classes](#core-classes)
+  - [How the streaming actually works](#how-the-streaming-actually-works)
+  - [A/V sync](#av-sync)
+  - [Threading model](#threading-model)
+  - [Controls](#controls)
+  - [Building](#building)
+    - [Requirements](#requirements)
+    - [macOS / Linux](#macos--linux)
+    - [Debug builds](#debug-builds)
+    - [Formatting](#formatting)
+  - [Project layout](#project-layout)
+  - [Testing](#testing)
+  - [Legal test content](#legal-test-content)
+  - [Known limitations / roadmap](#known-limitations--roadmap)
+  - [Hard-won lessons](#hard-won-lessons)
+  - [License](#license)
 
 ---
 
