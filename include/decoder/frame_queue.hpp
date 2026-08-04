@@ -60,4 +60,6 @@ template <typename T> class FrameQueue {
         std::lock_guard<std::mutex> lock(mutex_);
         return queue_.empty();
     }
+
+    size_t size() const {return queue_.size();}
 };

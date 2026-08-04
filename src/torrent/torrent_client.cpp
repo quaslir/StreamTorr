@@ -12,10 +12,11 @@
 #include <libtorrent/settings_pack.hpp>
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/units.hpp>
+#include <memory>
 #include <mutex>
 #include <thread>
 
-TorrentClient::TorrentClient() : session_(make_default_settings()) {}
+TorrentClient::TorrentClient() : session_(std::make_unique<lt::session>(make_default_settings())) {}
 
 bool TorrentClient::add_source(const std::string &magnet,
                                const std::filesystem::path &download_dir) {
@@ -32,7 +33,7 @@ bool TorrentClient::add_source(const std::string &magnet,
 
     params.save_path = download_dir.string();
 
-    handle_ = session_.add_torrent(params);
+    handle_ = session_->add_torrent(params);
 
     if (!handle_.is_valid()) {
         return false;
@@ -188,7 +189,7 @@ void TorrentClient::alert_loop() {
     int tick = 0;
     while (running_) {
         std::vector<lt::alert *> alerts;
-        session_.pop_alerts(&alerts);
+        session_->pop_alerts(&alerts);
         for (auto *alert : alerts) {
             if (lt::alert_cast<lt::piece_finished_alert>(alert)) {
                 piece_downloaded_cv_.notify_all();
@@ -224,8 +225,20 @@ float TorrentClient::overall_progress() const {
     return handle_.status().progress;
 }
 
+void TorrentClient::abort() {
+    running_ = false;
+if(alert_thread_.joinable()) alert_thread_.join();
+if(source_added_ && session_) {
+    auto proxy = std::make_shared<lt::session_proxy>(session_->abort());
+    session_.reset();
+    std::thread([proxy]() {
+
+    }).detach();
+}
+}
+
+
 TorrentClient::~TorrentClient() {
     running_ = false;
-    if (alert_thread_.joinable())
-        alert_thread_.join();
+    if (alert_thread_.joinable()) alert_thread_.join();
 }

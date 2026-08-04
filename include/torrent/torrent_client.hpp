@@ -14,7 +14,7 @@
 
 class TorrentClient {
   private:
-    lt::session session_;
+    std::unique_ptr<lt::session> session_;
     lt::torrent_handle handle_;
     std::filesystem::path download_dir_;
     std::filesystem::path target_file_path_;
@@ -48,4 +48,5 @@ class TorrentClient {
     bool wait_for_range(uint64_t offset, uint64_t length, uint32_t timeout_ms) const;
     void alert_loop();
     float overall_progress() const;
+    void abort();
 };
