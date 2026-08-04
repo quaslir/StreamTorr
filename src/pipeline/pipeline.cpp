@@ -331,7 +331,7 @@ void Pipeline::demux_loop() {
         if (!packet.has_value()) {
             video_queue_.close();
             audio_queue_.close();
-            break;
+            return;
         }
 
         switch (packet->type) {
