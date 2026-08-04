@@ -164,6 +164,13 @@ void Player::update() {
         state_ = PlayerState::Playing;
     }
 
+
+    if(pipeline_.video_frames().is_closed()) {
+            stop();
+            state_ = PlayerState::Finished;
+            return;
+        }
+
     bool need_new_frame = (state_ == PlayerState::Playing);
 
     if (need_new_frame && !pending_frame_) {
@@ -174,10 +181,6 @@ void Player::update() {
                 state_ = PlayerState::Finished;
                 return;
             }
-        } else if(pipeline_.video_frames().is_closed()) {
-            stop();
-            state_ = PlayerState::Finished;
-            return;
         }
     }
     if (pending_frame_) {
